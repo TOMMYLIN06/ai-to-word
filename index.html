@@ -225,12 +225,23 @@
                     return;
                 }
 
+                // 【手機版修正 1】偵測是否為 iOS 裝置 (iPhone/iPad)
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
                 // 為了避免深色模式下匯出的 PDF 背景是黑色、字是淡色
-                // 我們在匯出前「暫時」強制切換回淺色模式
+                // 我們在匯出前暫時強制切換回淺色模式，並「關閉漸變動畫」防白底白字
                 const wasDark = htmlElement.classList.contains('dark');
+                
+                // 【手機版修正 2】解除預覽區的捲動限制，防止 iPhone 截不到畫面
+                const rightPanelContent = previewArea.parentElement;
+                const originalOverflow = rightPanelContent.style.overflow;
+
                 if (wasDark) {
+                    document.body.style.transition = 'none'; // 瞬間暫停動畫
                     htmlElement.classList.remove('dark');
                 }
+                
+                rightPanelContent.style.overflow = 'visible';
 
                 const filename = filenameInput.value.trim() || 'Tommy的AI轉Word';
 
@@ -238,19 +249,35 @@
                     margin:       [15, 15, 15, 15], // 上下左右邊距
                     filename:     `${filename}.pdf`,
                     image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { scale: 2, useCORS: true },
+                    html2canvas:  { 
+                        // 【手機版修正 3】iOS 的畫布記憶體極小，scale 超過 1 會直接全白崩潰
+                        scale: isIOS ? 1 : 2, 
+                        useCORS: true,
+                        scrollY: 0,
+                        windowWidth: document.documentElement.offsetWidth
+                    },
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
 
-                // 設定小延遲，確保畫面完全切換成淺色後再截圖產生 PDF
+                // 延長一點點延遲到 350 毫秒，確保字體顏色完全變黑再截圖
                 setTimeout(() => {
+                    window.scrollTo(0, 0); // 確保畫面在最頂端
+                    
                     html2pdf().set(opt).from(previewArea).save().then(() => {
-                        // PDF 匯出完成後，如果原本是深色模式，就還原回去
+                        // 復原原本的狀態
+                        rightPanelContent.style.overflow = originalOverflow;
                         if (wasDark) {
                             htmlElement.classList.add('dark');
+                            // 稍微等一下再把動畫加回來，避免閃爍
+                            setTimeout(() => {
+                                document.body.style.transition = '';
+                            }, 50);
                         }
+                    }).catch(err => {
+                        console.error('PDF Export Error:', err);
+                        rightPanelContent.style.overflow = originalOverflow;
                     });
-                }, 150);
+                }, 350);
             });
 
             // --- 匯出為 Word 邏輯 ---
