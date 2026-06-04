@@ -31,9 +31,6 @@
     <!-- 載入 Marked 解析 Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-    <!-- 載入 html2pdf 來處理 PDF 匯出 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
     <!-- 自訂文章樣式 (相容深色/淺色) -->
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -50,6 +47,36 @@
         /* 淺色模式文字 */
         html:not(.dark) .prose { color: #374151; }
         html:not(.dark) .prose h1, html:not(.dark) .prose h2, html:not(.dark) .prose h3 { color: #111827; }
+
+        /* === 專屬列印排版 (為了匯出成完美的純文字 PDF) === */
+        @media print {
+            /* 隱藏不需列印的 UI 元素 (導覽列、輸入區、工具列) */
+            header, #inputPanel, #toolbar {
+                display: none !important;
+            }
+            
+            /* 將畫面強制調整為白底、自動高度，避免被捲動條切斷 */
+            body, main, #previewPanel {
+                background: white !important;
+                display: block !important;
+                height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+            }
+
+            /* 確保預覽區塊可以跨頁列印 */
+            #previewArea {
+                overflow: visible !important;
+                padding: 0 1cm !important; /* 給予適當邊界 */
+            }
+
+            /* 強制將所有文字 (包含深色模式下的白字) 轉回黑色 */
+            * { color: black !important; }
+            .katex { color: black !important; }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-darkBg dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
@@ -72,15 +99,15 @@
     <!-- 主要內容區 -->
     <main class="flex-1 p-4 lg:p-6 flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-73px)]">
         
-        <!-- 左欄：輸入區 -->
-        <div class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[40vh] lg:min-h-0">
+        <!-- 左欄：輸入區 (加入 ID) -->
+        <div id="inputPanel" class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[40vh] lg:min-h-0">
             <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50/50 border-gray-100 dark:bg-[#2a2a3d] dark:border-darkBorder transition-colors duration-200">
                 <div class="flex items-center gap-2">
                     <!-- 編輯 Icon -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     <h2 class="font-semibold text-sm">AI 原始文字貼上區</h2>
                 </div>
-                <!-- 新增：一鍵清除按鈕 -->
+                <!-- 一鍵清除按鈕 -->
                 <button id="clearBtn" class="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded-md text-xs font-medium transition-colors shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                     清除
@@ -89,9 +116,9 @@
             <textarea id="inputText" class="flex-1 w-full p-4 resize-none outline-none font-mono text-sm leading-relaxed bg-transparent text-gray-700 placeholder-gray-400 dark:text-gray-300 dark:placeholder-gray-600" placeholder="請將 ChatGPT, Gemini 的文字貼到這裡..."></textarea>
         </div>
 
-        <!-- 右欄：預覽與匯出區 -->
-        <div class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[50vh] lg:min-h-0">
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2.5 border-b bg-gray-50/50 border-gray-100 dark:bg-[#2a2a3d] dark:border-darkBorder transition-colors duration-200 gap-3 sm:gap-0">
+        <!-- 右欄：預覽與匯出區 (加入 ID) -->
+        <div id="previewPanel" class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[50vh] lg:min-h-0">
+            <div id="toolbar" class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2.5 border-b bg-gray-50/50 border-gray-100 dark:bg-[#2a2a3d] dark:border-darkBorder transition-colors duration-200 gap-3 sm:gap-0">
                 <div class="flex items-center gap-2 shrink-0">
                     <!-- 眼睛 Icon -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -99,19 +126,19 @@
                 </div>
                 
                 <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
-                    <!-- 新增：自訂檔名輸入框 -->
+                    <!-- 自訂檔名輸入框 -->
                     <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-darkBg overflow-hidden focus-within:ring-1 focus-within:ring-indigo-500 shrink-0">
                         <span class="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">檔名</span>
                         <input type="text" id="filenameInput" value="" class="w-48 sm:w-40 px-2 py-1.5 text-sm bg-transparent text-gray-800 dark:text-gray-200 outline-none" placeholder="預設: Tommy的AI轉Word">
                     </div>
 
-                    <!-- 新增：匯出 PDF 按鈕 -->
+                    <!-- 匯出 PDF 按鈕 -->
                     <button id="exportPdfBtn" class="flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                         PDF
                     </button>
 
-                    <!-- 修改：匯出 Word 按鈕 -->
+                    <!-- 匯出 Word 按鈕 -->
                     <button id="exportBtn" class="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         Word
@@ -218,66 +245,35 @@
                 updatePreview();
             });
 
-            // --- 匯出為 PDF 邏輯 ---
+            // --- 全新：瀏覽器原生列印匯出 PDF 邏輯 (支援複製文字) ---
             exportPdfBtn.addEventListener('click', () => {
                 if (inputText.value.trim() === '') {
                     alert('請先輸入內容喔！');
                     return;
                 }
 
-                // 【手機版修正 1】偵測是否為 iOS 裝置 (iPhone/iPad)
-                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-                // 為了避免深色模式下匯出的 PDF 背景是黑色、字是淡色
-                // 我們在匯出前暫時強制切換回淺色模式，並「關閉漸變動畫」防白底白字
-                const wasDark = htmlElement.classList.contains('dark');
-                
-                // 【手機版修正 2】解除預覽區的捲動限制，防止 iPhone 截不到畫面
-                const rightPanelContent = previewArea.parentElement;
-                const originalOverflow = rightPanelContent.style.overflow;
-
-                if (wasDark) {
-                    document.body.style.transition = 'none'; // 瞬間暫停動畫
-                    htmlElement.classList.remove('dark');
-                }
-                
-                rightPanelContent.style.overflow = 'visible';
-
+                // 取得自訂檔名
                 const filename = filenameInput.value.trim() || 'Tommy的AI轉Word';
+                
+                // 為了讓使用者在列印存檔時，預設檔名是自訂的檔名
+                // 我們必須短暫修改網頁的 title
+                const originalTitle = document.title;
+                document.title = filename;
 
-                const opt = {
-                    margin:       [15, 15, 15, 15], // 上下左右邊距
-                    filename:     `${filename}.pdf`,
-                    image:        { type: 'jpeg', quality: 0.98 },
-                    html2canvas:  { 
-                        // 【手機版修正 3】iOS 的畫布記憶體極小，scale 超過 1 會直接全白崩潰
-                        scale: isIOS ? 1 : 2, 
-                        useCORS: true,
-                        scrollY: 0,
-                        windowWidth: document.documentElement.offsetWidth
-                    },
-                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-
-                // 延長一點點延遲到 350 毫秒，確保字體顏色完全變黑再截圖
+                // 【修正】加入短暫延遲
+                // 確保手機瀏覽器 (尤其是 iOS Safari) 不會阻擋這個請求
                 setTimeout(() => {
-                    window.scrollTo(0, 0); // 確保畫面在最頂端
+                    try {
+                        window.print();
+                    } catch (e) {
+                        alert("您的瀏覽器目前不支援此匯出功能，建議使用 Chrome 或 Safari 開啟。");
+                    }
                     
-                    html2pdf().set(opt).from(previewArea).save().then(() => {
-                        // 復原原本的狀態
-                        rightPanelContent.style.overflow = originalOverflow;
-                        if (wasDark) {
-                            htmlElement.classList.add('dark');
-                            // 稍微等一下再把動畫加回來，避免閃爍
-                            setTimeout(() => {
-                                document.body.style.transition = '';
-                            }, 50);
-                        }
-                    }).catch(err => {
-                        console.error('PDF Export Error:', err);
-                        rightPanelContent.style.overflow = originalOverflow;
-                    });
-                }, 350);
+                    // 給予列印視窗足夠的時間抓取新檔名後，再把標題改回來
+                    setTimeout(() => {
+                        document.title = originalTitle;
+                    }, 2000);
+                }, 300);
             });
 
             // --- 匯出為 Word 邏輯 ---
