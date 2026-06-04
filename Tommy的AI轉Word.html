@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tommy的AI轉Word的工具</title>
+
+    <!-- 載入 Tailwind CSS 來處理排版與樣式 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#181824',
+                        darkPanel: '#222232',
+                        darkHeader: '#1e1e2e',
+                        darkBorder: '#3a3a4c'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- 載入 KaTeX 處理數學公式 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <!-- 載入 Marked 解析 Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- 載入 html2pdf 來處理 PDF 匯出 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- 自訂文章樣式 (相容深色/淺色) -->
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .prose h1, .prose h2, .prose h3 { font-weight: bold; margin-bottom: 0.75rem; margin-top: 1.5rem; }
+        .prose h1 { font-size: 1.5rem; } .prose h2 { font-size: 1.25rem; } .prose h3 { font-size: 1.125rem; }
+        .prose p { margin-bottom: 1rem; line-height: 1.6; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+        
+        /* 深色模式文字 */
+        .dark .prose { color: #d1d5db; }
+        .dark .prose h1, .dark .prose h2, .dark .prose h3 { color: #f3f4f6; }
+        
+        /* 淺色模式文字 */
+        html:not(.dark) .prose { color: #374151; }
+        html:not(.dark) .prose h1, html:not(.dark) .prose h2, html:not(.dark) .prose h3 { color: #111827; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-darkBg dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- 頂部導覽列 -->
+    <header class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-darkHeader transition-colors duration-200">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                <!-- 文件 Icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+            </div>
+            <h1 class="text-xl font-bold tracking-wide">Tommy的AI轉Word的工具</h1>
+        </div>
+        <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 dark:hover:text-white transition-colors" title="切換深/淺色主題">
+            <!-- 太陽/月亮 Icon 容器 -->
+            <div id="themeIcon"></div>
+        </button>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="flex-1 p-4 lg:p-6 flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-73px)]">
+        
+        <!-- 左欄：輸入區 -->
+        <div class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[40vh] lg:min-h-0">
+            <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50/50 border-gray-100 dark:bg-[#2a2a3d] dark:border-darkBorder transition-colors duration-200">
+                <div class="flex items-center gap-2">
+                    <!-- 編輯 Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <h2 class="font-semibold text-sm">AI 原始文字貼上區</h2>
+                </div>
+                <!-- 新增：一鍵清除按鈕 -->
+                <button id="clearBtn" class="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded-md text-xs font-medium transition-colors shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    清除
+                </button>
+            </div>
+            <textarea id="inputText" class="flex-1 w-full p-4 resize-none outline-none font-mono text-sm leading-relaxed bg-transparent text-gray-700 placeholder-gray-400 dark:text-gray-300 dark:placeholder-gray-600" placeholder="請將 ChatGPT, Gemini 的文字貼到這裡..."></textarea>
+        </div>
+
+        <!-- 右欄：預覽與匯出區 -->
+        <div class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[50vh] lg:min-h-0">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 py-2.5 border-b bg-gray-50/50 border-gray-100 dark:bg-[#2a2a3d] dark:border-darkBorder transition-colors duration-200 gap-3 sm:gap-0">
+                <div class="flex items-center gap-2 shrink-0">
+                    <!-- 眼睛 Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <h2 class="font-semibold text-sm whitespace-nowrap">檔案即時預覽</h2>
+                </div>
+                
+                <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto">
+                    <!-- 新增：自訂檔名輸入框 -->
+                    <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-darkBg overflow-hidden focus-within:ring-1 focus-within:ring-indigo-500 shrink-0">
+                        <span class="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">檔名</span>
+                        <input type="text" id="filenameInput" value="" class="w-48 sm:w-40 px-2 py-1.5 text-sm bg-transparent text-gray-800 dark:text-gray-200 outline-none" placeholder="預設: Tommy的AI轉Word">
+                    </div>
+
+                    <!-- 新增：匯出 PDF 按鈕 -->
+                    <button id="exportPdfBtn" class="flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        PDF
+                    </button>
+
+                    <!-- 修改：匯出 Word 按鈕 -->
+                    <button id="exportBtn" class="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Word
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 預覽呈現區塊 -->
+            <div class="flex-1 p-6 overflow-auto">
+                <div id="previewArea" class="prose max-w-none">
+                    <!-- 內容會動態產生於此 -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputText = document.getElementById('inputText');
+            const previewArea = document.getElementById('previewArea');
+            const exportBtn = document.getElementById('exportBtn');
+            const exportPdfBtn = document.getElementById('exportPdfBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const filenameInput = document.getElementById('filenameInput');
+            const themeToggle = document.getElementById('themeToggle');
+            const htmlElement = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+
+            // --- SVG 圖示定義 ---
+            const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
+            const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+
+            // --- 深淺色模式切換 ---
+            function updateThemeIcon() {
+                if (htmlElement.classList.contains('dark')) {
+                    themeIcon.innerHTML = sunIcon;
+                } else {
+                    themeIcon.innerHTML = moonIcon;
+                }
+            }
+            
+            updateThemeIcon(); // 初始化圖示
+
+            themeToggle.addEventListener('click', () => {
+                htmlElement.classList.toggle('dark');
+                updateThemeIcon();
+            });
+
+            // --- 預覽更新邏輯 (包含防衝突處理) ---
+            function updatePreview() {
+                let text = inputText.value;
+                if (!window.marked || !window.renderMathInElement) return;
+
+                const mathBlocks = {};
+                let mathIndex = 0;
+
+                // 將公式替換為佔位符
+                const replaceWithPlaceholder = (match) => {
+                    const placeholder = `@@@MATH${mathIndex}@@@`;
+                    mathBlocks[placeholder] = match;
+                    mathIndex++;
+                    return placeholder;
+                };
+
+                // 依序保護各種類型數學標記
+                text = text.replace(/\$\$([\s\S]+?)\$\$/g, replaceWithPlaceholder);
+                text = text.replace(/\\\[([\s\S]+?)\\\]/g, replaceWithPlaceholder);
+                text = text.replace(/\\\(([\s\S]+?)\\\)/g, replaceWithPlaceholder);
+                text = text.replace(/\$([^$\n]+?)\$/g, replaceWithPlaceholder);
+
+                // Markdown 轉 HTML
+                let rawHtml = marked.parse(text);
+
+                // 還原公式
+                for (const [placeholder, mathText] of Object.entries(mathBlocks)) {
+                    rawHtml = rawHtml.replace(placeholder, () => mathText);
+                }
+
+                previewArea.innerHTML = rawHtml;
+
+                // 算繪數學公式
+                renderMathInElement(previewArea, {
+                    delimiters: [
+                        { left: '$$', right: '$$', display: true },
+                        { left: '$', right: '$', display: false },
+                        { left: '\\(', right: '\\)', display: false },
+                        { left: '\\[', right: '\\]', display: true }
+                    ],
+                    throwOnError: false,
+                    output: 'htmlAndMathml'
+                });
+            }
+
+            // 監聽文字輸入
+            inputText.addEventListener('input', updatePreview);
+
+            // 確保腳本載入後至少算繪一次空畫面
+            setTimeout(updatePreview, 500);
+
+            // --- 一鍵清除邏輯 ---
+            clearBtn.addEventListener('click', () => {
+                inputText.value = '';
+                updatePreview();
+            });
+
+            // --- 匯出為 PDF 邏輯 ---
+            exportPdfBtn.addEventListener('click', () => {
+                if (inputText.value.trim() === '') {
+                    alert('請先輸入內容喔！');
+                    return;
+                }
+
+                // 為了避免深色模式下匯出的 PDF 背景是黑色、字是淡色
+                // 我們在匯出前「暫時」強制切換回淺色模式
+                const wasDark = htmlElement.classList.contains('dark');
+                if (wasDark) {
+                    htmlElement.classList.remove('dark');
+                }
+
+                const filename = filenameInput.value.trim() || 'Tommy的AI轉Word';
+
+                const opt = {
+                    margin:       [15, 15, 15, 15], // 上下左右邊距
+                    filename:     `${filename}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                // 設定小延遲，確保畫面完全切換成淺色後再截圖產生 PDF
+                setTimeout(() => {
+                    html2pdf().set(opt).from(previewArea).save().then(() => {
+                        // PDF 匯出完成後，如果原本是深色模式，就還原回去
+                        if (wasDark) {
+                            htmlElement.classList.add('dark');
+                        }
+                    });
+                }, 150);
+            });
+
+            // --- 匯出為 Word 邏輯 ---
+            exportBtn.addEventListener('click', () => {
+                if (inputText.value.trim() === '') {
+                    alert('請先輸入內容喔！');
+                    return;
+                }
+
+                const filename = filenameInput.value.trim() || 'Tommy的AI轉Word';
+
+                // 複製 DOM 防止改到畫面
+                const clone = previewArea.cloneNode(true);
+
+                // 刪除 KaTeX 產生的純 HTML 部分，保留 Word 要看的 MathML
+                const katexHtmlNodes = clone.querySelectorAll('.katex-html');
+                katexHtmlNodes.forEach(node => node.remove());
+
+                const htmlContent = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' 
+                      xmlns:w='urn:schemas-microsoft-com:office:word' 
+                      xmlns:m='http://schemas.w3.org/1998/Math/MathML' 
+                      xmlns='http://www.w3.org/TR/REC-html40'>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>${filename}</title>
+                    <style>
+                        body { 
+                            font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif; 
+                            font-size: 12pt;
+                            line-height: 1.5;
+                        }
+                        h1, h2, h3 { color: #333; font-weight: bold; }
+                        p { margin-bottom: 1em; }
+                        ul, ol { margin-left: 20px; }
+                    </style>
+                </head>
+                <body>
+                    ${clone.innerHTML}
+                </body>
+                </html>`;
+
+                const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                // 將下載檔名替換為自訂檔名
+                link.download = `${filename}.doc`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            });
+        });
+    </script>
+</body>
+</html>
