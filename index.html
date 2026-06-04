@@ -50,8 +50,12 @@
 
         /* === 專屬列印排版 (為了匯出成完美的純文字 PDF) === */
         @media print {
-            @page { margin: 0; }
-            header, #inputPanel, #toolbar { display: none !important; }
+            /* 隱藏不需列印的 UI 元素 (導覽列、輸入區、工具列) */
+            header, #inputPanel, #toolbar {
+                display: none !important;
+            }
+            
+            /* 將畫面強制調整為白底、自動高度，避免被捲動條切斷 */
             body, main, #previewPanel {
                 background: white !important;
                 display: block !important;
@@ -62,10 +66,14 @@
                 box-shadow: none !important;
                 overflow: visible !important;
             }
+
+            /* 確保預覽區塊可以跨頁列印，留白完全交給瀏覽器預設處理 */
             #previewArea {
                 overflow: visible !important;
-                padding: 2cm !important; 
+                padding: 0 !important; 
             }
+
+            /* 強制將所有文字 (包含深色模式下的白字) 轉回黑色 */
             * { color: black !important; }
             .katex { color: black !important; }
         }
