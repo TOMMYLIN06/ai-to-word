@@ -50,6 +50,11 @@
 
         /* === 專屬列印排版 (為了匯出成完美的純文字 PDF) === */
         @media print {
+            /* 移除瀏覽器預設的頁首(標題)與頁尾(網址/日期/頁碼) */
+            @page {
+                margin: 0;
+            }
+
             /* 隱藏不需列印的 UI 元素 (導覽列、輸入區、工具列) */
             header, #inputPanel, #toolbar {
                 display: none !important;
@@ -67,10 +72,10 @@
                 overflow: visible !important;
             }
 
-            /* 確保預覽區塊可以跨頁列印 */
+            /* 確保預覽區塊可以跨頁列印，並手動補回上下左右的留白邊界 */
             #previewArea {
                 overflow: visible !important;
-                padding: 0 1cm !important; /* 給予適當邊界 */
+                padding: 2cm !important; /* 加上 2cm 的內邊距，避免文字貼齊邊緣 */
             }
 
             /* 強制將所有文字 (包含深色模式下的白字) 轉回黑色 */
