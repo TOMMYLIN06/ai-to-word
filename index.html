@@ -79,7 +79,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.5</span>
+                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.7</span>
             </div>
         </div>
         
@@ -168,7 +168,10 @@
                     <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
                 </div>
 
-                <button id="googleLoginBtn" class="w-full flex items-center justify-center gap-3 bg-white dark:bg-darkBg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm">
+                <button id="googleLoginBtn" class="w-full flex items-center justify-center gap-3 bg-white dark:bg-darkBg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm relative overflow-hidden">
+                    <div id="googleBtnLoader" class="absolute inset-0 bg-white/80 dark:bg-darkBg/80 hidden items-center justify-center">
+                        <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571c.001-.001.002-.001.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
                     使用 Google 帳號一鍵登入
                 </button>
@@ -227,6 +230,7 @@
             const vipSection = document.getElementById('vipSection');
             const modalTitle = document.getElementById('modalTitle');
             const modalDesc = document.getElementById('modalDesc');
+            const googleBtnLoader = document.getElementById('googleBtnLoader');
 
             // 深淺色切換
             const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
@@ -245,7 +249,22 @@
             // 👤 2. 會員狀態監聽與手機登入處理
             // ==========================================
 
-            // 清理掉容易引發輪迴錯誤的 getRedirectResult
+            // 確保一開始就攔截 Redirect 的結果，這是解決 Safari 跳轉失敗的關鍵
+            auth.getRedirectResult().then((result) => {
+                if (result.user) {
+                    console.log("跳轉登入成功");
+                    loginModal.classList.add('hidden');
+                    loginModal.classList.remove('flex');
+                }
+            }).catch(error => {
+                // 如果是環境不支援跳轉，忽略此錯誤不顯示給使用者
+                if (error.code === 'auth/operation-not-supported-in-this-environment') {
+                    console.warn("當前環境不支援跳轉驗證結果攔截。");
+                } else if (error.code !== 'auth/redirect-cancelled-by-user') {
+                    console.error("跳轉驗證回傳錯誤:", error);
+                }
+            });
+
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
@@ -345,19 +364,56 @@
                     .catch(error => alert("❌ 發生錯誤：" + error.message));
             });
 
-            // ★ Google 一鍵登入 (全面採用穩定 Popup 模式) ★
+            // ★ Google 一鍵登入 (防護升級) ★
             document.getElementById('googleLoginBtn').addEventListener('click', () => {
-                const provider = new firebase.auth.GoogleAuthProvider();
+                const ua = navigator.userAgent || navigator.vendor || window.opera;
                 
-                // 放棄不穩定的跳轉，統一使用彈出視窗
-                auth.signInWithPopup(provider).catch(error => {
-                    // 如果使用者自己關掉視窗，不報錯
-                    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-                        return;
-                    }
-                    // 如果是因為環境或內建瀏覽器阻擋
-                    alert("⚠️ 您的瀏覽器阻擋了 Google 登入！\n\n這通常是因為您使用 LINE/IG 等內建瀏覽器，或是手機開啟了防追蹤功能。\n\n✅ 強烈建議：\n請直接在上方的框框「輸入 Email 與自訂密碼」然後按【註冊】。這是最穩定且 100% 成功的登入方式！");
-                });
+                // 1. 偵測是否為 APP 內建瀏覽器 (FB, LINE, IG 等)
+                const isInAppBrowser = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf("Line") > -1) || (ua.indexOf("Instagram") > -1) || (ua.indexOf("MicroMessenger") > -1);
+
+                if (isInAppBrowser) {
+                    alert("⚠️ 系統偵測到您正在使用 LINE 或 FB 等內建瀏覽器！\n\n由於 Google 安全機制，內建瀏覽器會阻擋登入功能（顯示 400 錯誤）。\n\n👉 解決方案：\n1. 請點擊畫面右上角的選單，選擇【在 Safari / Chrome 中開啟】再嘗試登入。\n\n2. 或者，您也可以直接在畫面上方輸入 Email 與自訂密碼，按下【註冊】即可立刻使用！");
+                    return; // 終止執行，避免跳去 400 錯誤畫面
+                }
+
+                // 2. 判斷是否為手機 (包含 iOS / Android)
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
+                const provider = new firebase.auth.GoogleAuthProvider();
+
+                googleBtnLoader.classList.remove('hidden');
+                googleBtnLoader.classList.add('flex');
+
+                if (isMobile) {
+                    // 手機環境：嘗試使用 Redirect (對 Safari 較友善)
+                    auth.signInWithRedirect(provider).catch(error => {
+                        googleBtnLoader.classList.add('hidden');
+                        googleBtnLoader.classList.remove('flex');
+                        
+                        // 如果環境不支援 Redirect (例如預覽環境)，退回 Popup
+                        if (error.code === 'auth/operation-not-supported-in-this-environment') {
+                            console.log("不支援 Redirect，改用 Popup");
+                            auth.signInWithPopup(provider).catch(popupErr => {
+                                if (popupErr.code !== 'auth/popup-closed-by-user') {
+                                    alert("⚠️ 您的瀏覽器阻擋了登入視窗！\n\n建議您直接使用 Email 與密碼註冊，這是最穩定的登入方式。");
+                                }
+                            });
+                        } else {
+                            alert("跳轉登入發生錯誤：" + error.message);
+                        }
+                    });
+                } else {
+                    // 電腦環境：使用 Popup
+                    auth.signInWithPopup(provider).catch(error => {
+                        googleBtnLoader.classList.add('hidden');
+                        googleBtnLoader.classList.remove('flex');
+                        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+                            alert("⚠️ 登入被阻擋！建議直接使用 Email 註冊登入。");
+                        }
+                    }).then(() => {
+                        googleBtnLoader.classList.add('hidden');
+                        googleBtnLoader.classList.remove('flex');
+                    });
+                }
             });
 
             // 登出
