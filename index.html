@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tommy的AI轉Word工具</title>
 
+    <!-- 載入 Tailwind CSS 來處理排版與樣式 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,14 +23,17 @@
         }
     </script>
 
+    <!-- 載入 Firebase 核心、認證與資料庫模組 -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
+    <!-- 載入 KaTeX 處理數學公式 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
+    <!-- 載入 Marked 解析 Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
@@ -66,6 +70,7 @@
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-darkBg dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200 relative">
 
+    <!-- === 頂部導覽列 === -->
     <header class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-darkHeader transition-colors duration-200">
         <div class="flex items-center gap-3">
             <div class="bg-indigo-600 p-2 rounded-lg text-white">
@@ -74,7 +79,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.0</span>
+                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.2</span>
             </div>
         </div>
         
@@ -97,6 +102,7 @@
         </div>
     </header>
 
+    <!-- === 主要編輯區 === -->
     <main class="flex-1 p-4 lg:p-6 flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-73px)]">
         <div id="inputPanel" class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[40vh] lg:min-h-0">
             <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50/50 border-gray-100 dark:bg-[#2a2a3d] dark:border-darkBorder">
@@ -131,6 +137,7 @@
         </div>
     </main>
 
+    <!-- === 會員登入 / VIP 兌換彈出視窗 === -->
     <div id="loginModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 transition-opacity backdrop-blur-sm">
         <div class="bg-white dark:bg-darkPanel p-8 rounded-2xl shadow-2xl w-[90%] max-w-sm relative border border-gray-200 dark:border-gray-700">
             <button id="closeModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -152,7 +159,7 @@
 
                 <div class="flex gap-2 mt-2">
                     <button id="emailLoginBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium transition-colors">登入</button>
-                    <button id="emailRegisterBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-885 dark:text-white py-2 rounded-lg font-medium transition-colors">註冊</button>
+                    <button id="emailRegisterBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-lg font-medium transition-colors">註冊</button>
                 </div>
 
                 <div class="relative flex py-3 items-center">
@@ -235,8 +242,23 @@
             });
 
             // ==========================================
-            // 👤 2. 會員狀態監聽
+            // 👤 2. 會員狀態監聽與手機登入處理
             // ==========================================
+
+            // 處理手機跳轉登入後的回傳結果，攔截在不支援的環境下產生的錯誤
+            try {
+                auth.getRedirectResult().catch(error => {
+                    if (error.code === 'auth/operation-not-supported-in-this-environment') {
+                        console.warn("當前環境不支援跳轉登入，已自動退回彈出視窗模式。");
+                    } else if (error.code !== 'auth/redirect-cancelled-by-user') {
+                        console.error("登入錯誤:", error);
+                        alert("Google 登入跳轉時發生異常，若持續失敗，請嘗試使用 Email 註冊/登入。");
+                    }
+                });
+            } catch (e) {
+                console.warn("無法取得跳轉結果:", e);
+            }
+
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
@@ -337,10 +359,37 @@
                     .catch(error => alert("❌ 發生錯誤：" + error.message));
             });
 
-            // Google 一鍵登入
+            // ★ Google 一鍵登入 (針對手機裝置優化) ★
             document.getElementById('googleLoginBtn').addEventListener('click', () => {
                 const provider = new firebase.auth.GoogleAuthProvider();
-                auth.signInWithPopup(provider).catch(error => alert("登入發生錯誤：" + error.message));
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                
+                const loginWithPopup = () => {
+                    auth.signInWithPopup(provider).catch(error => {
+                        if (error.code !== 'auth/popup-closed-by-user') {
+                            alert("登入發生錯誤：" + error.message);
+                        }
+                    });
+                };
+
+                if (isMobile) {
+                    // 手機版：使用網頁跳轉方式，避免瀏覽器阻擋彈出視窗
+                    try {
+                        auth.signInWithRedirect(provider).catch(error => {
+                            // 若環境不支援跳轉，自動退回使用彈出視窗
+                            if (error.code === 'auth/operation-not-supported-in-this-environment') {
+                                loginWithPopup();
+                            } else {
+                                alert("跳轉登入發生錯誤：" + error.message);
+                            }
+                        });
+                    } catch (e) {
+                        loginWithPopup();
+                    }
+                } else {
+                    // 電腦版：使用彈出視窗方式，體驗較好
+                    loginWithPopup();
+                }
             });
 
             // 登出
@@ -349,7 +398,7 @@
             });
 
             // ==========================================
-            // 🎫 3. 執行密鑰兌換 (雙向資料紀錄)
+            // 🎫 3. 執行密鑰兌換 
             // ==========================================
             document.getElementById('redeemBtn').addEventListener('click', async () => {
                 const key = document.getElementById('keyInput').value.trim().toUpperCase();
