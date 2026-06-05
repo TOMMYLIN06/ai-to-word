@@ -79,7 +79,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.4</span>
+                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.5</span>
             </div>
         </div>
         
@@ -245,19 +245,7 @@
             // 👤 2. 會員狀態監聽與手機登入處理
             // ==========================================
 
-            try {
-                auth.getRedirectResult().catch(error => {
-                    if (error.code === 'auth/operation-not-supported-in-this-environment') {
-                        console.warn("當前環境不支援跳轉登入，已自動退回彈出視窗模式。");
-                    } else if (error.code !== 'auth/redirect-cancelled-by-user') {
-                        console.error("登入錯誤:", error);
-                        alert("Google 登入跳轉時發生異常，若持續失敗，請嘗試使用 Email 註冊/登入。");
-                    }
-                });
-            } catch (e) {
-                console.warn("無法取得跳轉結果:", e);
-            }
-
+            // 清理掉容易引發輪迴錯誤的 getRedirectResult
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
@@ -357,34 +345,19 @@
                     .catch(error => alert("❌ 發生錯誤：" + error.message));
             });
 
-            // Google 一鍵登入
+            // ★ Google 一鍵登入 (全面採用穩定 Popup 模式) ★
             document.getElementById('googleLoginBtn').addEventListener('click', () => {
                 const provider = new firebase.auth.GoogleAuthProvider();
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                 
-                const loginWithPopup = () => {
-                    auth.signInWithPopup(provider).catch(error => {
-                        if (error.code !== 'auth/popup-closed-by-user') {
-                            alert("登入發生錯誤：" + error.message);
-                        }
-                    });
-                };
-
-                if (isMobile) {
-                    try {
-                        auth.signInWithRedirect(provider).catch(error => {
-                            if (error.code === 'auth/operation-not-supported-in-this-environment') {
-                                loginWithPopup();
-                            } else {
-                                alert("跳轉登入發生錯誤：" + error.message);
-                            }
-                        });
-                    } catch (e) {
-                        loginWithPopup();
+                // 放棄不穩定的跳轉，統一使用彈出視窗
+                auth.signInWithPopup(provider).catch(error => {
+                    // 如果使用者自己關掉視窗，不報錯
+                    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+                        return;
                     }
-                } else {
-                    loginWithPopup();
-                }
+                    // 如果是因為環境或內建瀏覽器阻擋
+                    alert("⚠️ 您的瀏覽器阻擋了 Google 登入！\n\n這通常是因為您使用 LINE/IG 等內建瀏覽器，或是手機開啟了防追蹤功能。\n\n✅ 強烈建議：\n請直接在上方的框框「輸入 Email 與自訂密碼」然後按【註冊】。這是最穩定且 100% 成功的登入方式！");
+                });
             });
 
             // 登出
@@ -393,10 +366,9 @@
             });
 
             // ==========================================
-            // 🎫 3. 執行密鑰兌換 (已移除強制轉大寫機制)
+            // 🎫 3. 執行密鑰兌換 
             // ==========================================
             document.getElementById('redeemBtn').addEventListener('click', async () => {
-                // 原本是 .value.trim().toUpperCase()，現在只保留 .trim() 移除前後空白，不改變大小寫
                 const key = document.getElementById('keyInput').value.trim();
                 
                 if (!key) return alert("⚠️ 請輸入密鑰！");
