@@ -83,7 +83,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.2.1</span>
+                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.2.2</span>
             </div>
         </div>
         
@@ -143,7 +143,7 @@
         </div>
     </main>
 
-    <!-- === 1. 登入彈出視窗 (專門負責登入與註冊) === -->
+    <!-- === 1. 登入彈出視窗 === -->
     <div id="loginModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 transition-opacity backdrop-blur-sm">
         <div class="bg-white dark:bg-darkPanel p-8 rounded-2xl shadow-2xl w-[90%] max-w-sm relative border border-gray-200 dark:border-gray-700">
             <button id="closeLoginModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -185,7 +185,7 @@
         </div>
     </div>
 
-    <!-- === 2. 會員中心彈出視窗 (專責資訊顯示、儲值、登出) === -->
+    <!-- === 2. 會員中心彈出視窗 === -->
     <div id="accountModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 transition-opacity backdrop-blur-sm">
         <div class="bg-white dark:bg-darkPanel p-6 md:p-8 rounded-2xl shadow-2xl w-[90%] max-w-md relative border border-gray-200 dark:border-gray-700">
             <button id="closeAccountModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -194,7 +194,6 @@
 
             <h3 class="text-2xl font-bold text-center text-gray-900 dark:text-white mb-6">會員中心</h3>
             
-            <!-- 資訊面板 -->
             <div class="mb-6 p-5 bg-gray-50 dark:bg-darkBg rounded-xl border border-gray-200 dark:border-gray-600 shadow-inner">
                 <div class="mb-4">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">登入信箱</p>
@@ -210,7 +209,6 @@
                 </div>
             </div>
 
-            <!-- 兌換與加購區塊 -->
             <div class="mb-6 border-t border-gray-200 dark:border-gray-700 pt-5">
                 <p class="text-sm font-bold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
@@ -227,7 +225,6 @@
                 </div>
             </div>
 
-            <!-- 登出按鈕 (移至會員中心) -->
             <button id="accountLogoutBtn" class="w-full py-2.5 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-900/30 rounded-lg font-medium hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors">
                 安全登出帳號
             </button>
@@ -265,7 +262,6 @@
             const htmlElement = document.documentElement;
             const themeIcon = document.getElementById('themeIcon');
             
-            // UI 控制節點
             const loginModal = document.getElementById('loginModal');
             const accountModal = document.getElementById('accountModal');
             const userArea = document.getElementById('userArea');
@@ -275,7 +271,6 @@
             const vipBadgeHeader = document.getElementById('vipBadgeHeader');
             const googleBtnLoader = document.getElementById('googleBtnLoader');
 
-            // 會員中心內容節點
             const accountEmailDisplay = document.getElementById('accountEmailDisplay');
             const accountPlanDisplay = document.getElementById('accountPlanDisplay');
             const accountExpiryDisplay = document.getElementById('accountExpiryDisplay');
@@ -294,7 +289,7 @@
                 updateThemeIcon();
             });
 
-            // 彈出視窗開關事件
+            // 視窗開關
             loginBtnUI.addEventListener('click', () => {
                 loginModal.classList.remove('hidden');
                 loginModal.classList.add('flex');
@@ -311,7 +306,7 @@
             document.getElementById('closeAccountModalBtn').addEventListener('click', () => {
                 accountModal.classList.add('hidden');
                 accountModal.classList.remove('flex');
-                accountKeyInput.value = ''; // 關閉時清空序號欄
+                accountKeyInput.value = ''; 
             });
 
             // ==========================================
@@ -329,16 +324,12 @@
                     loginBtnUI.classList.remove('flex');
                     loginBtnUI.classList.add('hidden');
                     
-                    // 設定大頭貼與名字
                     const displayEmail = user.email;
                     userName.textContent = user.displayName || displayEmail.split('@')[0];
                     userAvatar.src = user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayEmail}&backgroundColor=b6e3f4`;
                     
-                    // 關閉登入視窗
                     loginModal.classList.add('hidden');
                     loginModal.classList.remove('flex');
-
-                    // 更新會員中心信箱
                     accountEmailDisplay.textContent = displayEmail;
 
                     await checkVipStatus(user.uid);
@@ -351,7 +342,6 @@
                     loginBtnUI.classList.add('flex');
                     vipBadgeHeader.classList.add('hidden');
                     
-                    // 關閉會員中心
                     accountModal.classList.add('hidden');
                     accountModal.classList.remove('flex');
                 }
@@ -377,7 +367,6 @@
                             vipBadgeHeader.classList.remove('hidden');
                             accountPlanDisplay.textContent = "👑 VIP 會員";
                             
-                            // 計算剩餘天數
                             const expDate = data.expireAt.toDate();
                             const diffTime = expDate - now;
                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -391,7 +380,6 @@
                         }
                     }
                     
-                    // 非 VIP 或已過期
                     isUserVip = false;
                     vipBadgeHeader.classList.add('hidden');
                     accountPlanDisplay.textContent = "基礎免費方案";
@@ -454,13 +442,13 @@
                 });
             });
 
-            // 登出 (移至會員中心)
+            // 登出
             document.getElementById('accountLogoutBtn').addEventListener('click', () => {
                 auth.signOut();
             });
 
             // ==========================================
-            // 🎫 3. 執行密鑰兌換 (時間疊加升級版)
+            // 🎫 3. 執行密鑰兌換 (時間疊加)
             // ==========================================
             document.getElementById('accountRedeemBtn').addEventListener('click', async () => {
                 const key = accountKeyInput.value.trim();
@@ -473,13 +461,10 @@
                     const keyDoc = await keyRef.get();
                     if (keyDoc.exists && keyDoc.data().isUsed !== true) {
                         const durationType = keyDoc.data().duration;
-                        
-                        // 先取得使用者目前的 VIP 狀態來計算疊加
                         const userDocRef = db.collection('vipUsers').doc(currentUser.uid);
                         const userDoc = await userDocRef.get();
                         let currentData = userDoc.exists ? userDoc.data() : {};
 
-                        // 如果已經是永久會員，直接擋下，避免浪費客人的序號
                         if (currentData.isLifetime) {
                             return alert("⚠️ 您已經是永久 VIP 會員，不需再兌換任何序號囉！");
                         }
@@ -494,24 +479,20 @@
                             const addDays = parseInt(durationType) || 30;
                             const addMs = addDays * 24 * 60 * 60 * 1000;
                             
-                            // 判斷時間疊加：如果原本有時間且還沒過期，就「原時間 + 新天數」
                             if (currentData.expireAt && currentData.expireAt.toDate() > now) {
                                 newExpireAt = new Date(currentData.expireAt.toDate().getTime() + addMs);
                             } else {
-                                // 若已過期或本來就不是 VIP，從「現在」開始算
                                 newExpireAt = new Date(now.getTime() + addMs);
                             }
                         }
 
-                        // 寫入使用者資料庫
                         await userDocRef.set({
                             isLifetime: isLife,
                             expireAt: isLife ? null : newExpireAt,
-                            redeemedKey: key, // 紀錄最新使用的序號
+                            redeemedKey: key,
                             userEmail: currentUser.email
-                        }, { merge: true }); // 使用 merge 確保不會洗掉其他未來可能的欄位
+                        }, { merge: true });
 
-                        // 將密鑰標記為已使用
                         await keyRef.update({ 
                             isUsed: true,
                             usedByEmail: currentUser.email,
@@ -521,7 +502,7 @@
                         
                         alert("🎉 兌換成功！方案已為您更新展延。");
                         accountKeyInput.value = '';
-                        await checkVipStatus(currentUser.uid); // 立即刷新顯示狀態
+                        await checkVipStatus(currentUser.uid); 
                     } else {
                         alert("❌ 兌換失敗：無效的序號或該序號已被使用！");
                     }
@@ -532,13 +513,14 @@
             });
 
             // ==========================================
-            // 📄 4. 預覽與匯出邏輯
+            // 📄 4. 預覽與匯出邏輯 (修正數學公式抓取)
             // ==========================================
             function updatePreview() {
                 let text = inputText.value;
                 if (!window.marked || !window.renderMathInElement) return;
                 const mathBlocks = {};
                 let mathIndex = 0;
+                
                 const replaceWithPlaceholder = (match) => {
                     const placeholder = `@@@MATH${mathIndex}@@@`;
                     let safeMath = match;
@@ -549,7 +531,8 @@
                     return placeholder;
                 };
 
-                text = text.replace(/\$$([\s\S]+?)\$$\$/g, replaceWithPlaceholder);
+                // 【重要修正】將正則表達式的符號完全修正，確保能正確抓取 $$ 與 $
+                text = text.replace(/\$\$([\s\S]+?)\$\$/g, replaceWithPlaceholder);
                 text = text.replace(/\\\[([\s\S]+?)\\\]/g, replaceWithPlaceholder);
                 text = text.replace(/\\\(([\s\S]+?)\\\)/g, replaceWithPlaceholder);
                 text = text.replace(/\$([^$\n]+?)\$/g, replaceWithPlaceholder);
@@ -587,7 +570,6 @@
                 }
                 if (!isUserVip) {
                     alert("⚠️ 您目前的帳號為基礎方案，無匯出權限！\n\n請在接下來彈出的「會員中心」輸入序號以開通權限。");
-                    // 已經登入但不是 VIP，直接彈出會員中心讓他儲值
                     accountModal.classList.remove('hidden');
                     accountModal.classList.add('flex');
                     return false;
