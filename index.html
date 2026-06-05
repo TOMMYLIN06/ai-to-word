@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 強制清除快取標籤 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Tommy的AI轉Word工具</title>
 
+    <!-- 載入 Tailwind CSS 來處理排版與樣式 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -25,13 +27,17 @@
         }
     </script>
 
+    <!-- 載入 Firebase 核心、認證與資料庫模組 -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
+    <!-- 載入 KaTeX 處理數學公式 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <!-- 載入 Marked 解析 Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
@@ -44,6 +50,7 @@
         
         .dark .prose { color: #d1d5db; }
         .dark .prose h1, .dark .prose h2, .dark .prose h3 { color: #f3f4f6; }
+        
         html:not(.dark) .prose { color: #374151; }
         html:not(.dark) .prose h1, html:not(.dark) .prose h2, html:not(.dark) .prose h3 { color: #111827; }
 
@@ -76,11 +83,12 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.2.4</span>
+                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.2.5</span>
             </div>
         </div>
         
         <div class="flex items-center gap-3 shrink-0">
+            <!-- 登入後顯示的大頭貼區域 (可點擊開啟會員中心) -->
             <div id="userArea" class="hidden items-center gap-2.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 pr-3 rounded-full transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
                 <img id="userAvatar" src="" alt="avatar" class="w-8 h-8 rounded-full bg-white border border-gray-300 dark:border-gray-600 object-cover shadow-sm">
                 <div class="flex flex-col">
@@ -118,10 +126,10 @@
 
             <textarea id="inputText" class="flex-1 w-full p-4 resize-none outline-none font-mono text-sm leading-relaxed bg-transparent text-gray-700 placeholder-gray-400 dark:text-gray-300 dark:placeholder-gray-600" placeholder="請將 ChatGPT, Gemini 的文字貼到這裡..."></textarea>
             
-            <div class="px-4 py-2 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-darkBg/30">
-                <label class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+            <div class="px-4 py-2 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-darkBg/30 flex justify-between items-center">
+                <label class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer" title="如果文字中缺少了 $ 公式標籤，系統會自動幫您補齊">
                     <input type="checkbox" id="autoFixToggle" class="rounded text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600" checked>
-                    <span>智慧還原手機版複製遺失的公式 (Auto-Fix)</span>
+                    <span>開啟智慧還原公式 (Auto-Fix)</span>
                 </label>
             </div>
         </div>
@@ -483,13 +491,15 @@
             });
 
             // ==========================================
-            // 🤖 4. AI 手機破壞公式智慧修復引擎
+            // 🤖 4. AI 手機破壞公式「區塊感知」修復引擎 (全新重構)
             // ==========================================
             function autoFixGeminiMath(text) {
+                if (!text) return { fixedText: text, modified: false };
+
                 let protectedText = text;
                 const protections = [];
                 
-                // 保護現有的正確格式
+                // 保護現有的正確代碼，不讓它們被二次修改
                 const protect = (regex) => {
                     protectedText = protectedText.replace(regex, (m) => {
                         protections.push(m);
@@ -498,29 +508,40 @@
                 };
                 protect(/```[\s\S]*?```/g); // 程式碼區塊
                 protect(/`[^`\n]+`/g);      // 行內程式碼
-                protect(/\$\$([\s\S]+?)\$\$/g);
-                protect(/\\\[([\s\S]+?)\\\]/g);
-                protect(/\\\(([\s\S]+?)\\\)/g);
-                protect(/\$([^$\n]+?)\$/g);
+                protect(/\$\$([\s\S]+?)\$\$/g); // Block math
+                protect(/\\\[([\s\S]+?)\\\]/g); // Block math
+                protect(/\\\(([\s\S]+?)\\\)/g); // Inline math
+                protect(/\$([^$\n]+?)\$/g);     // Inline math
 
                 let modified = false;
-                // 尋找連續的 ASCII 字符，判斷內部是否包含遺失 $ 的 LaTeX 語法
-                const nakedMathRegex = /([!-~]+)/g;
                 
-                protectedText = protectedText.replace(nakedMathRegex, (match) => {
-                    if (match.startsWith('###PROT_') || match.startsWith('http') || match.startsWith('www')) return match;
-
-                    // 特徵判斷：包含 \字母, 或 _{,或 ^{ 等數學特徵
-                    const hasMath = /\\[a-zA-Z]{2,}|_{|\^{|\^[0-9a-zA-Z]|[a-zA-Z]_[0-9a-zA-Z]/.test(match);
-                    // 排除純 markdown 星號/底線
-                    const isJustMarkdown = /^[\*_]+[a-zA-Z0-9]+[\*_]+$/.test(match);
+                // 以中文、全形標點符號、換行作為切割點，萃取出「純英文/數學」區塊
+                const parts = protectedText.split(/([\u4e00-\u9FFF\u3000-\u303F\uFF00-\uFFEF\n\r]+)/);
+                
+                for(let i = 0; i < parts.length; i += 2) {
+                    let segment = parts[i];
+                    if (!segment.trim() || segment.includes('###PROT_') || segment.includes('http')) continue;
+                    
+                    const trimmed = segment.trim();
+                    // 偵測這個非中文區塊裡面，有沒有明顯的數學特徵
+                    const hasMath = /\\[a-zA-Z]+/.test(trimmed) || 
+                                    /_{/.test(trimmed) || 
+                                    /\^{/.test(trimmed) ||
+                                    /[a-zA-Z]_[0-9a-zA-Z]/.test(trimmed) ||
+                                    /[a-zA-Z]\^[0-9a-zA-Z]/.test(trimmed);
+                    
+                    // 排除純 markdown 格式或純數字
+                    const isJustMarkdown = /^[\*\-_~\s]+$/.test(trimmed) || /^[a-zA-Z0-9\.\s,]+$/.test(trimmed);
 
                     if (hasMath && !isJustMarkdown) {
                         modified = true;
-                        return `$${match}$`; // 自動幫它穿上 $ 外衣
+                        // 清除頭尾不小心殘留的 $ 符號 (手機版複製常有的 Bug)，然後完整包裹
+                        let cleanTrimmed = trimmed.replace(/^\$+|\$+$/g, '');
+                        parts[i] = segment.replace(trimmed, `$${cleanTrimmed}$`);
                     }
-                    return match;
-                });
+                }
+                
+                protectedText = parts.join('');
 
                 // 還原保護區塊
                 protections.forEach((prot, i) => {
@@ -546,18 +567,21 @@
                     text = result.fixedText;
                     if (result.modified) {
                         mathFixedNotice.classList.remove('hidden');
+                        mathFixedNotice.classList.add('block');
                     } else {
                         mathFixedNotice.classList.add('hidden');
+                        mathFixedNotice.classList.remove('block');
                     }
                 } else {
                     mathFixedNotice.classList.add('hidden');
+                    mathFixedNotice.classList.remove('block');
                 }
 
-                // 處理多種數學符號格式
                 const mathBlocks = {};
                 let mathIndex = 0;
                 const replaceWithPlaceholder = (match) => {
                     const placeholder = `@@@MATH${mathIndex}@@@`;
+                    // 防止 Markdown 把 _ 當作斜體，並且保護 % 號不讓 KaTeX 隱藏後面文字
                     let safeMath = match.replace(/(^|[^a-zA-Z0-9\)\}\]\\])_/g, '$1{}_').replace(/(^|[^\\])%/g, '$1\\%');
                     mathBlocks[placeholder] = safeMath;
                     mathIndex++;
@@ -575,6 +599,7 @@
                 }
                 previewArea.innerHTML = rawHtml;
 
+                // 讓 KaTeX 對錯誤更寬容，不會動不動就整塊變紅色
                 renderMathInElement(previewArea, {
                     delimiters: [
                         { left: '$$', right: '$$', display: true },
@@ -583,6 +608,9 @@
                         { left: '\\[', right: '\\]', display: true }
                     ],
                     throwOnError: false,
+                    errorColor: '#f43f5e',
+                    strict: false,
+                    trust: true,
                     output: 'htmlAndMathml'
                 });
             }
