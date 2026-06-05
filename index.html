@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 強制清除快取標籤 -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Tommy的AI轉Word工具</title>
 
     <!-- 載入 Tailwind CSS 來處理排版與樣式 -->
@@ -79,7 +83,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.8</span>
+                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.9</span>
             </div>
         </div>
         
@@ -144,7 +148,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
 
-            <div class="text-center mb-6">
+            <div class="text-center mb-4">
                 <h3 class="text-2xl font-bold text-gray-900 dark:text-white" id="modalTitle">會員登入</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-2" id="modalDesc">登入或輸入密鑰解鎖無限制匯出</p>
             </div>
@@ -158,8 +162,12 @@
                 </div>
 
                 <div class="flex gap-2 mt-2">
-                    <button id="emailLoginBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium transition-colors">登入</button>
-                    <button id="emailRegisterBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-lg font-medium transition-colors">註冊</button>
+                    <button id="emailLoginBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium transition-colors shadow-sm">登入</button>
+                    <button id="emailRegisterBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-lg font-medium transition-colors shadow-sm">註冊</button>
+                </div>
+
+                <div id="safariWarning" class="hidden text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 p-2 rounded text-center mt-1">
+                    👉 Apple 手機建議直接使用上方 Email 註冊，100% 不會失敗！
                 </div>
 
                 <div class="relative flex py-3 items-center">
@@ -179,7 +187,7 @@
 
             <div id="vipSection" class="hidden">
                 <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">已登入，請輸入您的 VIP 密鑰：</p>
-                <input type="text" id="keyInput" placeholder="例如：MONTH123 或 mIxEdCaSe" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-darkBg text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 mb-3">
+                <input type="text" id="keyInput" placeholder="例如：MONTH123" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-darkBg text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 mb-3">
                 <button id="redeemBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-colors shadow-sm">兌換 VIP 權限</button>
                 <div class="mt-4 text-center">
                     <a href="mailto:你的信箱@gmail.com" class="text-xs text-indigo-500 hover:text-indigo-600 underline">沒有密鑰？點此聯絡取得方案</a>
@@ -231,6 +239,13 @@
             const modalTitle = document.getElementById('modalTitle');
             const modalDesc = document.getElementById('modalDesc');
             const googleBtnLoader = document.getElementById('googleBtnLoader');
+            const safariWarning = document.getElementById('safariWarning');
+
+            // 偵測 Safari 顯示溫馨提示
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            if (isSafari) {
+                safariWarning.classList.remove('hidden');
+            }
 
             // 深淺色切換
             const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
@@ -248,6 +263,13 @@
             // ==========================================
             // 👤 2. 會員狀態監聽
             // ==========================================
+            // 強制清除可能殘留的跳轉結果錯誤
+            try {
+                auth.getRedirectResult().catch(err => {
+                    console.warn("清除舊版跳轉錯誤紀錄:", err.code);
+                });
+            } catch (e) {}
+
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
@@ -347,15 +369,13 @@
                     .catch(error => alert("❌ 發生錯誤：" + error.message));
             });
 
-            // ★ Google 一鍵登入 (全面棄用 Redirect，強制使用 Popup 防失憶) ★
+            // ★ Google 一鍵登入 (徹底放棄跳轉，只用 Popup) ★
             document.getElementById('googleLoginBtn').addEventListener('click', () => {
                 const ua = navigator.userAgent || navigator.vendor || window.opera;
-                
-                // 1. 偵測是否為 APP 內建瀏覽器 (FB, LINE, IG 等)
                 const isInAppBrowser = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf("Line") > -1) || (ua.indexOf("Instagram") > -1) || (ua.indexOf("MicroMessenger") > -1);
 
                 if (isInAppBrowser) {
-                    alert("⚠️ 系統偵測到您正在使用 LINE 或 FB 等內建瀏覽器！\n\n由於 Google 安全機制，內建瀏覽器會阻擋登入功能（顯示 400 錯誤）。\n\n👉 解決方案：\n1. 請點擊畫面右上角的選單，選擇【在 Safari / Chrome 中開啟】再嘗試登入。\n\n2. 或者，您也可以直接在畫面上方輸入 Email 與自訂密碼，按下【註冊】即可立刻使用！");
+                    alert("⚠️ 您正在使用 LINE 或 FB 內建瀏覽器！\n\n由於 Apple/Google 的隱私限制，內建瀏覽器無法使用 Google 登入。\n\n👉 解決方案：\n請直接在上方的框框輸入 Email 與密碼，按下【註冊】即可立刻無痛登入！");
                     return; 
                 }
 
@@ -364,7 +384,6 @@
                 googleBtnLoader.classList.remove('hidden');
                 googleBtnLoader.classList.add('flex');
 
-                // 強制所有裝置使用 Popup，避開 Safari ITP 清除 Cookie 的問題
                 auth.signInWithPopup(provider).then(() => {
                     googleBtnLoader.classList.add('hidden');
                     googleBtnLoader.classList.remove('flex');
@@ -372,13 +391,14 @@
                     googleBtnLoader.classList.add('hidden');
                     googleBtnLoader.classList.remove('flex');
                     
-                    // 如果 Safari 阻擋了彈出視窗
                     if (error.code === 'auth/popup-blocked') {
-                        alert("⚠️ 您的 Safari 瀏覽器阻擋了登入視窗！\n\n👉 解決方法：\n請前往手機的「設定」>「Safari」，將「阻擋彈出式視窗」關閉。\n\n💡 最快的方法：直接在畫面上方輸入 Email 和密碼，按下【註冊】即可立刻登入！");
+                        alert("⚠️ 您的 Safari 阻擋了登入視窗！\n\n👉 最快解決法：請直接使用畫面上方的 Email 和密碼，按下【註冊】即可立刻登入！(完全不會被阻擋)");
                     } 
-                    // 忽略使用者自己手動關閉視窗的錯誤
+                    else if (error.code === 'auth/web-storage-unsupported') {
+                        alert("⚠️ 您的瀏覽器開啟了「防止跨網站追蹤」或是處於無痕模式，導致無法儲存 Google 登入資訊。\n\n👉 最快解決法：請直接使用畫面上方的 Email 和密碼，按下【註冊】即可立刻登入！");
+                    }
                     else if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-                        alert("⚠️ 登入發生錯誤：" + error.message + "\n\n💡 最快的方法：請直接在畫面上方輸入 Email 和密碼，按下【註冊】即可無痛登入！");
+                        alert("⚠️ Google 登入發生錯誤。\n\n💡 建議：Apple 系統限制較多，請直接輸入 Email 與密碼，按下【註冊】，100% 保證成功！");
                     }
                 });
             });
@@ -393,7 +413,6 @@
             // ==========================================
             document.getElementById('redeemBtn').addEventListener('click', async () => {
                 const key = document.getElementById('keyInput').value.trim();
-                
                 if (!key) return alert("⚠️ 請輸入密鑰！");
                 if (!currentUser) return alert("⚠️ 請先登入或註冊！");
 
