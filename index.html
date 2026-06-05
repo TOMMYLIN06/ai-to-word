@@ -83,7 +83,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.2.6</span>
+                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.2.7</span>
             </div>
         </div>
         
@@ -121,15 +121,15 @@
             
             <!-- 成功修復公式的通知 -->
             <div id="mathFixedNotice" class="hidden mx-4 mt-3 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 p-2 text-xs rounded shadow-sm">
-                ✨ 系統已為您自動捕捉並還原手機版 Gemini/ChatGPT 遺失的公式符號！
+                ✨ 系統已為您自動捕捉並還原手機版 Gemini/ChatGPT 遺失的公式與排版符號！
             </div>
 
             <textarea id="inputText" class="flex-1 w-full p-4 resize-none outline-none font-mono text-sm leading-relaxed bg-transparent text-gray-700 placeholder-gray-400 dark:text-gray-300 dark:placeholder-gray-600" placeholder="請將 ChatGPT, Gemini 的文字貼到這裡..."></textarea>
             
             <div class="px-4 py-2 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-darkBg/30 flex justify-between items-center">
-                <label class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer" title="如果文字中缺少了 $ 公式標籤，系統會自動幫您補齊">
+                <label class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer" title="如果文字中缺少了 $ 公式標籤或粗體排版跑掉，系統會自動幫您修復">
                     <input type="checkbox" id="autoFixToggle" class="rounded text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600" checked>
-                    <span>開啟智慧還原公式 (Auto-Fix)</span>
+                    <span>開啟智慧修復引擎 (Auto-Fix)</span>
                 </label>
             </div>
         </div>
@@ -491,7 +491,7 @@
             });
 
             // ==========================================
-            // 🤖 4. AI 手機公式自動修復引擎 (區塊感知重構版)
+            // 🤖 4. AI 手機公式自動修復引擎
             // ==========================================
             function autoFixGeminiMath(text) {
                 if (!text) return { fixedText: text, modified: false };
@@ -512,15 +512,12 @@
                 protect(/\\\[([\s\S]+?)\\\]/g);
                 protect(/\\\(([\s\S]+?)\\\)/g);
                 
-                // 智慧防護：只保護「沒有包含大量中文」的 $ 區塊，避免 Gemini 單獨 $ 造成的紅色亂碼大災難
                 protect(/\$([^$\n]+?)\$/g, (p1) => {
                     const chineseCount = (p1.match(/[\u4e00-\u9FFF]/g) || []).length;
                     return chineseCount <= 2; 
                 });
 
                 let modified = false;
-                
-                // 以中文、全形符號、換行切割，精準定位「純英文數學區塊」
                 const parts = protectedText.split(/([\u4e00-\u9FFF\u3000-\u303F\uFF00-\uFFEF\n\r]+)/);
                 
                 for(let i = 0; i < parts.length; i += 2) {
@@ -528,7 +525,6 @@
                     if (!segment.trim() || segment.includes('###PROT_') || segment.includes('http')) continue;
                     
                     const trimmed = segment.trim();
-                    // 分離頭尾的 Markdown 符號 (如 ** ) 與標點符號，只對核心數學區塊處理
                     const matchObj = trimmed.match(/^([\*\s]*)(.*?)([\*:\s,\.\?。，；？！]*)$/);
                     if (!matchObj) continue;
                     
@@ -548,15 +544,12 @@
 
                     if (hasMath && !isJustMarkdown) {
                         modified = true;
-                        // 清除該區塊內所有亂跑的單獨 $ 符號
                         mathPart = mathPart.replace(/\$/g, '');
-                        // 重新穿上乾淨、完整的 $ 外衣，並把 ** 留在外面
                         parts[i] = segment.replace(trimmed, `${prefix}$${mathPart}$${suffix}`);
                     }
                 }
                 
                 protectedText = parts.join('');
-
                 protections.forEach((prot, i) => {
                     protectedText = protectedText.replace(`###PROT_${i}###`, prot);
                 });
@@ -574,6 +567,7 @@
                     return;
                 }
 
+                // AI 公式修復引擎
                 if (autoFixToggle.checked) {
                     const result = autoFixGeminiMath(text);
                     text = result.fixedText;
@@ -589,11 +583,15 @@
                     mathFixedNotice.classList.remove('block');
                 }
 
+                // ✨ 星號排版修正引擎：去除 Gemini 常見的粗體標籤內多餘空白
+                // 例如將 "** 順時針 (CW) **" 或 "**順時針 : **" 壓縮回 "**順時針 (CW)**"
+                text = text.replace(/\*\*\s*([\s\S]*?)\s*\*\*/g, '**$1**');
+
+                // 處理數學符號
                 const mathBlocks = {};
                 let mathIndex = 0;
                 
                 const replaceWithPlaceholder = (match) => {
-                    // 防止單獨 $ 橫跨整段中文導致大崩潰
                     if (match.startsWith('$') && !match.startsWith('$$') && !match.startsWith('\\[')) {
                         const chineseCount = (match.match(/[\u4e00-\u9FFF]/g) || []).length;
                         if (chineseCount > 2) return match; 
@@ -616,7 +614,6 @@
                 }
                 previewArea.innerHTML = rawHtml;
 
-                // 讓 KaTeX 對錯誤更寬容
                 renderMathInElement(previewArea, {
                     delimiters: [
                         { left: '$$', right: '$$', display: true },
