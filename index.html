@@ -79,7 +79,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.7</span>
+                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.8</span>
             </div>
         </div>
         
@@ -246,25 +246,8 @@
             });
 
             // ==========================================
-            // 👤 2. 會員狀態監聽與手機登入處理
+            // 👤 2. 會員狀態監聽
             // ==========================================
-
-            // 確保一開始就攔截 Redirect 的結果，這是解決 Safari 跳轉失敗的關鍵
-            auth.getRedirectResult().then((result) => {
-                if (result.user) {
-                    console.log("跳轉登入成功");
-                    loginModal.classList.add('hidden');
-                    loginModal.classList.remove('flex');
-                }
-            }).catch(error => {
-                // 如果是環境不支援跳轉，忽略此錯誤不顯示給使用者
-                if (error.code === 'auth/operation-not-supported-in-this-environment') {
-                    console.warn("當前環境不支援跳轉驗證結果攔截。");
-                } else if (error.code !== 'auth/redirect-cancelled-by-user') {
-                    console.error("跳轉驗證回傳錯誤:", error);
-                }
-            });
-
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
@@ -364,7 +347,7 @@
                     .catch(error => alert("❌ 發生錯誤：" + error.message));
             });
 
-            // ★ Google 一鍵登入 (防護升級) ★
+            // ★ Google 一鍵登入 (全面棄用 Redirect，強制使用 Popup 防失憶) ★
             document.getElementById('googleLoginBtn').addEventListener('click', () => {
                 const ua = navigator.userAgent || navigator.vendor || window.opera;
                 
@@ -373,47 +356,31 @@
 
                 if (isInAppBrowser) {
                     alert("⚠️ 系統偵測到您正在使用 LINE 或 FB 等內建瀏覽器！\n\n由於 Google 安全機制，內建瀏覽器會阻擋登入功能（顯示 400 錯誤）。\n\n👉 解決方案：\n1. 請點擊畫面右上角的選單，選擇【在 Safari / Chrome 中開啟】再嘗試登入。\n\n2. 或者，您也可以直接在畫面上方輸入 Email 與自訂密碼，按下【註冊】即可立刻使用！");
-                    return; // 終止執行，避免跳去 400 錯誤畫面
+                    return; 
                 }
 
-                // 2. 判斷是否為手機 (包含 iOS / Android)
-                const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
                 const provider = new firebase.auth.GoogleAuthProvider();
 
                 googleBtnLoader.classList.remove('hidden');
                 googleBtnLoader.classList.add('flex');
 
-                if (isMobile) {
-                    // 手機環境：嘗試使用 Redirect (對 Safari 較友善)
-                    auth.signInWithRedirect(provider).catch(error => {
-                        googleBtnLoader.classList.add('hidden');
-                        googleBtnLoader.classList.remove('flex');
-                        
-                        // 如果環境不支援 Redirect (例如預覽環境)，退回 Popup
-                        if (error.code === 'auth/operation-not-supported-in-this-environment') {
-                            console.log("不支援 Redirect，改用 Popup");
-                            auth.signInWithPopup(provider).catch(popupErr => {
-                                if (popupErr.code !== 'auth/popup-closed-by-user') {
-                                    alert("⚠️ 您的瀏覽器阻擋了登入視窗！\n\n建議您直接使用 Email 與密碼註冊，這是最穩定的登入方式。");
-                                }
-                            });
-                        } else {
-                            alert("跳轉登入發生錯誤：" + error.message);
-                        }
-                    });
-                } else {
-                    // 電腦環境：使用 Popup
-                    auth.signInWithPopup(provider).catch(error => {
-                        googleBtnLoader.classList.add('hidden');
-                        googleBtnLoader.classList.remove('flex');
-                        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-                            alert("⚠️ 登入被阻擋！建議直接使用 Email 註冊登入。");
-                        }
-                    }).then(() => {
-                        googleBtnLoader.classList.add('hidden');
-                        googleBtnLoader.classList.remove('flex');
-                    });
-                }
+                // 強制所有裝置使用 Popup，避開 Safari ITP 清除 Cookie 的問題
+                auth.signInWithPopup(provider).then(() => {
+                    googleBtnLoader.classList.add('hidden');
+                    googleBtnLoader.classList.remove('flex');
+                }).catch(error => {
+                    googleBtnLoader.classList.add('hidden');
+                    googleBtnLoader.classList.remove('flex');
+                    
+                    // 如果 Safari 阻擋了彈出視窗
+                    if (error.code === 'auth/popup-blocked') {
+                        alert("⚠️ 您的 Safari 瀏覽器阻擋了登入視窗！\n\n👉 解決方法：\n請前往手機的「設定」>「Safari」，將「阻擋彈出式視窗」關閉。\n\n💡 最快的方法：直接在畫面上方輸入 Email 和密碼，按下【註冊】即可立刻登入！");
+                    } 
+                    // 忽略使用者自己手動關閉視窗的錯誤
+                    else if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+                        alert("⚠️ 登入發生錯誤：" + error.message + "\n\n💡 最快的方法：請直接在畫面上方輸入 Email 和密碼，按下【註冊】即可無痛登入！");
+                    }
+                });
             });
 
             // 登出
