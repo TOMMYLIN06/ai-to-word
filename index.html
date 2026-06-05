@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tommy的AI轉Word工具</title>
 
+    <!-- 載入 Tailwind CSS 來處理排版與樣式 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -22,16 +23,20 @@
         }
     </script>
 
+    <!-- 載入 Firebase 核心、認證與資料庫模組 (Compat 版) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
+    <!-- 載入 KaTeX 處理數學公式 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
+    <!-- 載入 Marked 解析 Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
+    <!-- 自訂文章樣式 (相容深色/淺色) -->
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .prose h1, .prose h2, .prose h3 { font-weight: bold; margin-bottom: 0.75rem; margin-top: 1.5rem; }
@@ -40,12 +45,15 @@
         .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
         .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
         
+        /* 深色模式文字 */
         .dark .prose { color: #d1d5db; }
         .dark .prose h1, .dark .prose h2, .dark .prose h3 { color: #f3f4f6; }
         
+        /* 淺色模式文字 */
         html:not(.dark) .prose { color: #374151; }
         html:not(.dark) .prose h1, html:not(.dark) .prose h2, html:not(.dark) .prose h3 { color: #111827; }
 
+        /* === 專屬列印排版 (為了匯出成完美的純文字 PDF) === */
         @media print {
             header, #inputPanel, #toolbar { display: none !important; }
             body, main, #previewPanel {
@@ -58,7 +66,10 @@
                 box-shadow: none !important;
                 overflow: visible !important;
             }
-            #previewArea { overflow: visible !important; padding: 0 !important; }
+            #previewArea {
+                overflow: visible !important;
+                padding: 0 !important; 
+            }
             * { color: black !important; }
             .katex { color: black !important; }
         }
@@ -66,37 +77,40 @@
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-darkBg dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200 relative">
 
+    <!-- === 頂部導覽列 === -->
     <header class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-darkHeader transition-colors duration-200">
         <div class="flex items-center gap-3">
             <div class="bg-indigo-600 p-2 rounded-lg text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
             </div>
-            <div class="flex items-center gap-2">
-                <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
-                <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.1.0</span>
-            </div>
+            <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
+            <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
         </div>
         
         <div class="flex items-center gap-3 shrink-0">
+            <!-- 登入後的會員頭像與名稱 (預設隱藏) -->
             <div id="userArea" class="hidden items-center gap-2">
                 <span id="vipBadge" class="hidden bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-md">👑 VIP</span>
                 <span id="userName" class="text-sm font-medium hidden md:block"></span>
                 <button id="logoutBtn" class="text-xs px-2 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-red-500 hover:text-white transition-colors">登出</button>
             </div>
             
+            <!-- 登入按鈕 (預設顯示) -->
             <button id="loginBtnUI" class="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                 <span>登入 / 註冊</span>
             </button>
 
+            <!-- 深淺色切換 -->
             <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 dark:hover:text-white transition-colors">
                 <div id="themeIcon"></div>
             </button>
         </div>
     </header>
 
+    <!-- === 主要編輯區 === -->
     <main class="flex-1 p-4 lg:p-6 flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-73px)]">
+        
         <div id="inputPanel" class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[40vh] lg:min-h-0">
             <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50/50 border-gray-100 dark:bg-[#2a2a3d] dark:border-darkBorder">
                 <div class="flex items-center gap-2">
@@ -120,16 +134,25 @@
                         <span class="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">檔名</span>
                         <input type="text" id="filenameInput" value="" class="w-40 sm:w-32 lg:w-40 px-2 py-1.5 text-sm bg-transparent text-gray-800 dark:text-gray-200 outline-none" placeholder="預設: Tommy的AI轉Word">
                     </div>
-                    <button id="exportPdfBtn" class="flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">PDF</button>
-                    <button id="exportBtn" class="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">Word</button>
+
+                    <button id="exportPdfBtn" class="flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">
+                        PDF
+                    </button>
+
+                    <button id="exportBtn" class="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">
+                        Word
+                    </button>
                 </div>
             </div>
+            
             <div class="flex-1 p-6 overflow-auto">
                 <div id="previewArea" class="prose max-w-none"></div>
             </div>
         </div>
+
     </main>
 
+    <!-- === 會員登入 / VIP 兌換彈出視窗 === -->
     <div id="loginModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 transition-opacity backdrop-blur-sm">
         <div class="bg-white dark:bg-darkPanel p-8 rounded-2xl shadow-2xl w-[90%] max-w-sm relative border border-gray-200 dark:border-gray-700">
             <button id="closeModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -141,6 +164,7 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-2" id="modalDesc">登入或輸入密鑰解鎖無限制匯出</p>
             </div>
             
+            <!-- Email登入與註冊區塊 -->
             <div id="authSection" class="flex flex-col gap-3">
                 <input type="email" id="emailInput" placeholder="電子信箱" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-darkBg text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500">
                 <input type="password" id="passwordInput" placeholder="密碼 (至少6碼)" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-darkBg text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500">
@@ -151,7 +175,7 @@
 
                 <div class="flex gap-2 mt-2">
                     <button id="emailLoginBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium transition-colors">登入</button>
-                    <button id="emailRegisterBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-885 dark:text-white py-2 rounded-lg font-medium transition-colors">註冊</button>
+                    <button id="emailRegisterBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-lg font-medium transition-colors">註冊</button>
                 </div>
 
                 <div class="relative flex py-3 items-center">
@@ -166,10 +190,13 @@
                 </button>
             </div>
 
+            <!-- VIP 兌換區塊 (登入後才會顯示) -->
             <div id="vipSection" class="hidden">
                 <p class="text-sm text-gray-600 dark:text-gray-300 mb-2">已登入，請輸入您的 VIP 密鑰：</p>
                 <input type="text" id="keyInput" placeholder="例如：MONTH123" class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-darkBg text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 mb-3">
-                <button id="redeemBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-colors shadow-sm">兌換 VIP 權限</button>
+                <button id="redeemBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-colors shadow-sm">
+                    兌換 VIP 權限
+                </button>
                 <div class="mt-4 text-center">
                     <a href="mailto:你的信箱@gmail.com" class="text-xs text-indigo-500 hover:text-indigo-600 underline">沒有密鑰？點此聯絡取得方案</a>
                 </div>
@@ -195,7 +222,7 @@
         const auth = firebase.auth();
         
         let currentUser = null;
-        let isUserVip = false;
+        let isUserVip = false; // 記錄目前的 VIP 狀態
 
         document.addEventListener('DOMContentLoaded', () => {
             const inputText = document.getElementById('inputText');
@@ -208,18 +235,22 @@
             const htmlElement = document.documentElement;
             const themeIcon = document.getElementById('themeIcon');
             
+            // 會員 UI 元素
             const loginModal = document.getElementById('loginModal');
             const userArea = document.getElementById('userArea');
             const loginBtnUI = document.getElementById('loginBtnUI');
             const userName = document.getElementById('userName');
             const vipBadge = document.getElementById('vipBadge');
 
+            // 兌換與登入區塊元素
             const authSection = document.getElementById('authSection');
             const vipSection = document.getElementById('vipSection');
             const modalTitle = document.getElementById('modalTitle');
             const modalDesc = document.getElementById('modalDesc');
 
-            // 深淺色切換
+            // ==========================================
+            // 🎨 深淺色切換
+            // ==========================================
             const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
             const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
 
@@ -233,8 +264,9 @@
             });
 
             // ==========================================
-            // 👤 2. 會員狀態監聽
+            // 👤 2. 會員驗證系統
             // ==========================================
+            // 監聽登入狀態改變
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
                     currentUser = user;
@@ -244,17 +276,21 @@
                     loginBtnUI.classList.add('hidden');
                     userName.textContent = user.displayName || user.email.split('@')[0];
 
+                    // 檢查是否為 VIP
                     await checkVipStatus(user.uid);
                     
+                    // 如果不是VIP，將視窗切換成「兌換密鑰」模式
                     if (!isUserVip) {
                         authSection.classList.add('hidden');
                         vipSection.classList.remove('hidden');
                         modalTitle.textContent = "升級 VIP 會員";
                         modalDesc.textContent = "請輸入兌換碼解鎖無限匯出功能";
                     } else {
+                        // 是VIP的話自動關閉視窗
                         loginModal.classList.add('hidden');
                         loginModal.classList.remove('flex');
                     }
+                    
                 } else {
                     currentUser = null;
                     isUserVip = false;
@@ -264,6 +300,7 @@
                     loginBtnUI.classList.remove('hidden');
                     loginBtnUI.classList.add('flex');
                     
+                    // 重置登入視窗
                     authSection.classList.remove('hidden');
                     vipSection.classList.add('hidden');
                     modalTitle.textContent = "會員登入";
@@ -271,15 +308,17 @@
                 }
             });
 
+            // 檢查 Firebase 資料庫的 VIP 狀態
             async function checkVipStatus(uid) {
                 try {
                     const doc = await db.collection('vipUsers').doc(uid).get();
                     if (doc.exists) {
                         const data = doc.data();
                         const now = new Date();
+                        // 檢查是否永久，或是否未過期
                         if (data.isLifetime || (data.expireAt && data.expireAt.toDate() > now)) {
                             isUserVip = true;
-                            vipBadge.classList.remove('hidden');
+                            vipBadge.classList.remove('hidden'); // 顯示皇冠標誌
                             return;
                         }
                     }
@@ -290,6 +329,7 @@
                 }
             }
 
+            // 打開 / 關閉登入視窗
             loginBtnUI.addEventListener('click', () => {
                 loginModal.classList.remove('hidden');
                 loginModal.classList.add('flex');
@@ -301,7 +341,7 @@
 
             // Email 登入
             document.getElementById('emailLoginBtn').addEventListener('click', () => {
-                const email = document.getElementById('emailInput').value.trim();
+                const email = document.getElementById('emailInput').value;
                 const password = document.getElementById('passwordInput').value;
                 if(!email || !password) return alert("請輸入信箱與密碼");
                 auth.signInWithEmailAndPassword(email, password).catch(err => alert("登入失敗：" + err.message));
@@ -309,25 +349,38 @@
 
             // Email 註冊
             document.getElementById('emailRegisterBtn').addEventListener('click', () => {
-                const email = document.getElementById('emailInput').value.trim();
+                const email = document.getElementById('emailInput').value;
                 const password = document.getElementById('passwordInput').value;
                 if(!email || !password) return alert("請輸入信箱與密碼");
                 auth.createUserWithEmailAndPassword(email, password).catch(err => alert("註冊失敗：" + err.message));
             });
 
-            // 忘記密碼發信
+            // ★ 忘記密碼 (發送重設信件) ★
             document.getElementById('forgotPasswordBtn').addEventListener('click', () => {
                 const email = document.getElementById('emailInput').value.trim();
-                if(!email) return alert("請先在上方輸入您的電子信箱，再點擊忘記密碼。");
+                if(!email) {
+                    alert("請先在上方輸入您的電子信箱，再點擊忘記密碼。");
+                    return;
+                }
                 auth.sendPasswordResetEmail(email)
-                    .then(() => alert("✅ 密碼重設信件已寄出！請前往您的信箱收信。"))
-                    .catch(error => alert("❌ 發生錯誤：" + error.message));
+                    .then(() => {
+                        alert("✅ 密碼重設信件已寄出！請前往您的信箱收信 (若沒看到請檢查垃圾信件夾)。");
+                    })
+                    .catch((error) => {
+                        if(error.code === 'auth/user-not-found') {
+                            alert("❌ 找不到此信箱，請確認您是否已經註冊過。");
+                        } else if (error.code === 'auth/invalid-email') {
+                            alert("❌ 信箱格式錯誤！請輸入正確的 Email。");
+                        } else {
+                            alert("❌ 發生錯誤：" + error.message);
+                        }
+                    });
             });
 
-            // Google 一鍵登入
+            // Google 登入
             document.getElementById('googleLoginBtn').addEventListener('click', () => {
                 const provider = new firebase.auth.GoogleAuthProvider();
-                auth.signInWithPopup(provider).catch(error => alert("登入發生錯誤：" + error.message));
+                auth.signInWithPopup(provider).catch(error => { alert("登入發生錯誤：" + error.message); });
             });
 
             // 登出
@@ -336,7 +389,7 @@
             });
 
             // ==========================================
-            // 🎫 3. 執行密鑰兌換 (雙向資料紀錄)
+            // 🎫 3. 執行密鑰兌換 (紀錄是誰用的)
             // ==========================================
             document.getElementById('redeemBtn').addEventListener('click', async () => {
                 const key = document.getElementById('keyInput').value.trim().toUpperCase();
@@ -354,10 +407,11 @@
                         if (durationType === 'forever' || durationType === 'lifetime') {
                             isLife = true;
                         } else {
-                            const addDays = parseInt(durationType) || 30;
+                            const addDays = parseInt(durationType) || 30; // 預設30天
                             newExpireAt = new Date(Date.now() + (addDays * 24 * 60 * 60 * 1000));
                         }
 
+                        // 寫入用戶 VIP 狀態
                         await db.collection('vipUsers').doc(currentUser.uid).set({
                             isLifetime: isLife,
                             expireAt: isLife ? null : newExpireAt,
@@ -365,6 +419,7 @@
                             userEmail: currentUser.email
                         });
 
+                        // 標記密鑰已使用，並記錄使用者的 Email
                         await keyRef.update({ 
                             isUsed: true,
                             usedByEmail: currentUser.email,
@@ -379,7 +434,7 @@
                     }
                 } catch(e) {
                     console.error(e);
-                    alert("❌ 系統錯誤，請確認網路連線或檢查資料庫權限設定！");
+                    alert("❌ 系統錯誤，請確認網路連線或檢查 Firebase 資料庫權限設定！");
                 }
             });
 
@@ -401,7 +456,7 @@
                     return placeholder;
                 };
 
-                text = text.replace(/\$$([\s\S]+?)\$$\$/g, replaceWithPlaceholder);
+                text = text.replace(/\$\$([\s\S]+?)\$\$/g, replaceWithPlaceholder);
                 text = text.replace(/\\\[([\s\S]+?)\\\]/g, replaceWithPlaceholder);
                 text = text.replace(/\\\(([\s\S]+?)\\\)/g, replaceWithPlaceholder);
                 text = text.replace(/\$([^$\n]+?)\$/g, replaceWithPlaceholder);
@@ -431,6 +486,7 @@
                 updatePreview();
             });
 
+            // 檢查匯出權限
             function checkExportPermission() {
                 if (!currentUser) {
                     loginModal.classList.remove('hidden');
@@ -450,22 +506,27 @@
                 return true;
             }
 
+            // 匯出 PDF
             exportPdfBtn.addEventListener('click', () => {
                 if(!checkExportPermission()) return;
+                
                 const filename = filenameInput.value.trim() || 'Tommy的AI轉Word';
                 const originalTitle = document.title;
                 document.title = filename;
                 setTimeout(() => {
-                    try { window.print(); } catch (e) { alert("瀏覽器不支援列印功能。"); }
+                    try { window.print(); } catch (e) { alert("瀏覽器不支援，建議使用 Chrome 或 Safari。"); }
                     setTimeout(() => { document.title = originalTitle; }, 2000);
                 }, 300);
             });
 
+            // 匯出 Word
             exportBtn.addEventListener('click', () => {
                 if(!checkExportPermission()) return;
+
                 const filename = filenameInput.value.trim() || 'Tommy的AI轉Word';
                 const clone = previewArea.cloneNode(true);
-                clone.querySelectorAll('.katex-html').forEach(node => node.remove());
+                const katexHtmlNodes = clone.querySelectorAll('.katex-html');
+                katexHtmlNodes.forEach(node => node.remove());
                 const htmlContent = `
                 <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns:m='http://schemas.w3.org/1998/Math/MathML' xmlns='http://www.w3.org/TR/REC-html40'>
                 <head><meta charset='utf-8'><title>${filename}</title>
