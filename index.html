@@ -81,6 +81,7 @@
         <div class="flex items-center gap-3 shrink-0">
             <div id="userArea" class="hidden items-center gap-2">
                 <span id="vipBadge" class="hidden bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-md">👑 VIP</span>
+                <span id="vipDate" class="hidden text-xs text-gray-500 dark:text-gray-400 font-medium tracking-wide"></span>
                 <span id="userName" class="text-sm font-medium hidden md:block"></span>
                 <button id="logoutBtn" class="text-xs px-2 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-red-500 hover:text-white transition-colors">登出</button>
             </div>
@@ -213,6 +214,7 @@
             const loginBtnUI = document.getElementById('loginBtnUI');
             const userName = document.getElementById('userName');
             const vipBadge = document.getElementById('vipBadge');
+            const vipDate = document.getElementById('vipDate');
 
             const authSection = document.getElementById('authSection');
             const vipSection = document.getElementById('vipSection');
@@ -259,6 +261,7 @@
                     currentUser = null;
                     isUserVip = false;
                     vipBadge.classList.add('hidden');
+                    vipDate.classList.add('hidden');
                     userArea.classList.add('hidden');
                     userArea.classList.remove('flex');
                     loginBtnUI.classList.remove('hidden');
@@ -280,11 +283,21 @@
                         if (data.isLifetime || (data.expireAt && data.expireAt.toDate() > now)) {
                             isUserVip = true;
                             vipBadge.classList.remove('hidden');
+                            
+                            // 顯示到期日
+                            vipDate.classList.remove('hidden');
+                            if (data.isLifetime) {
+                                vipDate.textContent = '永久有效';
+                            } else {
+                                const expDate = data.expireAt.toDate();
+                                vipDate.textContent = `${expDate.getFullYear()}/${expDate.getMonth()+1}/${expDate.getDate()} 到期`;
+                            }
                             return;
                         }
                     }
                     isUserVip = false;
                     vipBadge.classList.add('hidden');
+                    vipDate.classList.add('hidden');
                 } catch(e) {
                     console.error("讀取 VIP 狀態失敗", e);
                 }
