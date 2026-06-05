@@ -3,13 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 強制清除快取標籤 -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Tommy的AI轉Word工具</title>
 
-    <!-- 載入 Tailwind CSS 來處理排版與樣式 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -27,17 +25,13 @@
         }
     </script>
 
-    <!-- 載入 Firebase 核心、認證與資料庫模組 -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-    <!-- 載入 KaTeX 處理數學公式 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-
-    <!-- 載入 Marked 解析 Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
@@ -50,7 +44,6 @@
         
         .dark .prose { color: #d1d5db; }
         .dark .prose h1, .dark .prose h2, .dark .prose h3 { color: #f3f4f6; }
-        
         html:not(.dark) .prose { color: #374151; }
         html:not(.dark) .prose h1, html:not(.dark) .prose h2, html:not(.dark) .prose h3 { color: #111827; }
 
@@ -83,12 +76,11 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.2.2</span>
+                <span class="text-xs bg-blue-100 dark:bg-indigo-950 text-blue-600 dark:text-indigo-300 font-mono font-bold px-1.5 py-0.5 rounded">v2.2.4</span>
             </div>
         </div>
         
         <div class="flex items-center gap-3 shrink-0">
-            <!-- 登入後顯示的大頭貼區域 (可點擊開啟會員中心) -->
             <div id="userArea" class="hidden items-center gap-2.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 pr-3 rounded-full transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
                 <img id="userAvatar" src="" alt="avatar" class="w-8 h-8 rounded-full bg-white border border-gray-300 dark:border-gray-600 object-cover shadow-sm">
                 <div class="flex flex-col">
@@ -110,7 +102,7 @@
 
     <!-- === 主要編輯區 === -->
     <main class="flex-1 p-4 lg:p-6 flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-73px)]">
-        <div id="inputPanel" class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[40vh] lg:min-h-0">
+        <div id="inputPanel" class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[40vh] lg:min-h-0 relative">
             <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50/50 border-gray-100 dark:bg-[#2a2a3d] dark:border-darkBorder">
                 <div class="flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-400"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -118,7 +110,20 @@
                 </div>
                 <button id="clearBtn" class="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-2.5 py-1 rounded-md text-xs font-medium transition-colors shadow-sm">清除</button>
             </div>
+            
+            <!-- 成功修復公式的通知 -->
+            <div id="mathFixedNotice" class="hidden mx-4 mt-3 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 p-2 text-xs rounded shadow-sm">
+                ✨ 系統已為您自動捕捉並還原手機版 Gemini/ChatGPT 遺失的公式符號！
+            </div>
+
             <textarea id="inputText" class="flex-1 w-full p-4 resize-none outline-none font-mono text-sm leading-relaxed bg-transparent text-gray-700 placeholder-gray-400 dark:text-gray-300 dark:placeholder-gray-600" placeholder="請將 ChatGPT, Gemini 的文字貼到這裡..."></textarea>
+            
+            <div class="px-4 py-2 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-darkBg/30">
+                <label class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 cursor-pointer">
+                    <input type="checkbox" id="autoFixToggle" class="rounded text-indigo-600 focus:ring-indigo-500 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600" checked>
+                    <span>智慧還原手機版複製遺失的公式 (Auto-Fix)</span>
+                </label>
+            </div>
         </div>
 
         <div id="previewPanel" class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[50vh] lg:min-h-0">
@@ -149,31 +154,25 @@
             <button id="closeLoginModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
-
             <div class="text-center mb-6">
                 <h3 class="text-2xl font-bold text-gray-900 dark:text-white">會員登入</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">登入帳號解鎖無限制匯出與進階功能</p>
             </div>
-            
             <div class="flex flex-col gap-3">
                 <input type="email" id="emailInput" placeholder="電子信箱" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-darkBg text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500">
                 <input type="password" id="passwordInput" placeholder="密碼 (至少6碼)" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-darkBg text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500">
-                
                 <div class="flex justify-end">
                     <button id="forgotPasswordBtn" class="text-xs text-indigo-500 hover:text-indigo-600 underline">忘記密碼？</button>
                 </div>
-
                 <div class="flex gap-2 mt-2">
                     <button id="emailLoginBtn" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-medium transition-colors shadow-sm">登入</button>
                     <button id="emailRegisterBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-2 rounded-lg font-medium transition-colors shadow-sm">註冊</button>
                 </div>
-
                 <div class="relative flex py-3 items-center">
                     <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
                     <span class="flex-shrink-0 mx-4 text-gray-400 text-sm">或</span>
                     <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
                 </div>
-
                 <button id="googleLoginBtn" class="w-full flex items-center justify-center gap-3 bg-white dark:bg-darkBg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 px-4 py-2.5 rounded-lg font-medium transition-colors shadow-sm relative overflow-hidden">
                     <div id="googleBtnLoader" class="absolute inset-0 bg-white/80 dark:bg-darkBg/80 hidden items-center justify-center">
                         <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -191,7 +190,6 @@
             <button id="closeAccountModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
-
             <h3 class="text-2xl font-bold text-center text-gray-900 dark:text-white mb-6">會員中心</h3>
             
             <div class="mb-6 p-5 bg-gray-50 dark:bg-darkBg rounded-xl border border-gray-200 dark:border-gray-600 shadow-inner">
@@ -199,7 +197,6 @@
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">登入信箱</p>
                     <p id="accountEmailDisplay" class="font-medium text-gray-900 dark:text-white text-base"></p>
                 </div>
-                
                 <div>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider font-semibold">目前方案</p>
                     <div class="flex items-end gap-2">
@@ -216,15 +213,12 @@
                 </p>
                 <div class="flex flex-col gap-2">
                     <input type="text" id="accountKeyInput" placeholder="請輸入兌換序號" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-darkBg text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
-                    <button id="accountRedeemBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-medium transition-colors shadow-sm">
-                        兌換序號
-                    </button>
+                    <button id="accountRedeemBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-lg font-medium transition-colors shadow-sm">兌換序號</button>
                 </div>
                 <div class="mt-3 text-center">
                     <a href="mailto:t1353124642@gmail.com?subject=【Tommy的AI轉Word工具】VIP方案與序號購買詢問" class="text-xs text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 underline transition-colors">想要升級或購買序號？點此聯絡客服</a>
                 </div>
             </div>
-
             <button id="accountLogoutBtn" class="w-full py-2.5 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-900/30 rounded-lg font-medium hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors">
                 安全登出帳號
             </button>
@@ -261,6 +255,8 @@
             const themeToggle = document.getElementById('themeToggle');
             const htmlElement = document.documentElement;
             const themeIcon = document.getElementById('themeIcon');
+            const mathFixedNotice = document.getElementById('mathFixedNotice');
+            const autoFixToggle = document.getElementById('autoFixToggle');
             
             const loginModal = document.getElementById('loginModal');
             const accountModal = document.getElementById('accountModal');
@@ -312,9 +308,7 @@
             // ==========================================
             // 👤 2. 會員狀態監聽
             // ==========================================
-            try {
-                auth.getRedirectResult().catch(err => console.warn(err.code));
-            } catch (e) {}
+            try { auth.getRedirectResult().catch(e => {}); } catch(e) {}
 
             auth.onAuthStateChanged(async (user) => {
                 if (user) {
@@ -341,7 +335,6 @@
                     loginBtnUI.classList.remove('hidden');
                     loginBtnUI.classList.add('flex');
                     vipBadgeHeader.classList.add('hidden');
-                    
                     accountModal.classList.add('hidden');
                     accountModal.classList.remove('flex');
                 }
@@ -353,7 +346,6 @@
                     if (doc.exists) {
                         const data = doc.data();
                         const now = new Date();
-                        
                         if (data.isLifetime) {
                             isUserVip = true;
                             vipBadgeHeader.classList.remove('hidden');
@@ -361,33 +353,24 @@
                             accountExpiryDisplay.textContent = "✓ 永久有效";
                             return;
                         } 
-                        
                         if (data.expireAt && data.expireAt.toDate() > now) {
                             isUserVip = true;
                             vipBadgeHeader.classList.remove('hidden');
                             accountPlanDisplay.textContent = "👑 VIP 會員";
-                            
                             const expDate = data.expireAt.toDate();
-                            const diffTime = expDate - now;
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            
+                            const diffDays = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
                             const yyyy = expDate.getFullYear();
                             const mm = String(expDate.getMonth() + 1).padStart(2, '0');
                             const dd = String(expDate.getDate()).padStart(2, '0');
-                            
                             accountExpiryDisplay.textContent = `將於 ${yyyy}/${mm}/${dd} 到期 (剩餘 ${diffDays} 天)`;
                             return;
                         }
                     }
-                    
                     isUserVip = false;
                     vipBadgeHeader.classList.add('hidden');
                     accountPlanDisplay.textContent = "基礎免費方案";
                     accountExpiryDisplay.textContent = "無法使用無限匯出與進階功能";
-                    
-                } catch(e) {
-                    console.error("讀取 VIP 狀態失敗", e);
-                }
+                } catch(e) { console.error("讀取 VIP 失敗", e); }
             }
 
             // ==========================================
@@ -409,9 +392,9 @@
 
             document.getElementById('forgotPasswordBtn').addEventListener('click', () => {
                 const email = document.getElementById('emailInput').value.trim();
-                if(!email) return alert("請先在上方輸入您的電子信箱，再點擊忘記密碼。");
+                if(!email) return alert("請先輸入信箱，再點擊忘記密碼。");
                 auth.sendPasswordResetEmail(email)
-                    .then(() => alert("✅ 密碼重設信件已寄出！請前往您的信箱收信。"))
+                    .then(() => alert("✅ 重設信件已寄出！"))
                     .catch(error => alert("❌ 發生錯誤：" + error.message));
             });
 
@@ -420,7 +403,7 @@
                 const isInAppBrowser = (ua.indexOf("FBAN") > -1) || (ua.indexOf("FBAV") > -1) || (ua.indexOf("Line") > -1) || (ua.indexOf("Instagram") > -1) || (ua.indexOf("MicroMessenger") > -1);
 
                 if (isInAppBrowser) {
-                    alert("⚠️ 系統偵測到您正在使用 LINE 或 FB 內建瀏覽器！\n\n因為 Apple/Google 安全機制，內建瀏覽器無法使用 Google 登入。\n\n👉 解決方案：請直接在畫面上方輸入 Email 與密碼，按下【註冊】即可無痛登入！");
+                    alert("⚠️ 系統偵測到您正在使用 LINE 或 FB 內建瀏覽器！\n\n👉 請直接在畫面上方輸入 Email 與密碼，按下【註冊】即可無痛登入！");
                     return; 
                 }
 
@@ -435,24 +418,20 @@
                     googleBtnLoader.classList.add('hidden');
                     googleBtnLoader.classList.remove('flex');
                     if (error.code === 'auth/popup-blocked') {
-                        alert("⚠️ 您的瀏覽器阻擋了登入視窗！\n\n👉 最快解決法：請直接使用畫面上方的 Email 和密碼，按下【註冊】即可立刻登入！(完全不會被阻擋)");
+                        alert("⚠️ 瀏覽器阻擋了視窗！請直接使用上方 Email 和密碼，按下【註冊】即可登入。");
                     } else if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
-                        alert("⚠️ Google 登入發生錯誤，建議直接使用 Email 註冊登入。");
+                        alert("⚠️ Google 登入錯誤，建議直接使用 Email 註冊登入。");
                     }
                 });
             });
 
-            // 登出
-            document.getElementById('accountLogoutBtn').addEventListener('click', () => {
-                auth.signOut();
-            });
+            document.getElementById('accountLogoutBtn').addEventListener('click', () => auth.signOut());
 
             // ==========================================
-            // 🎫 3. 執行密鑰兌換 (時間疊加)
+            // 🎫 3. 執行密鑰兌換
             // ==========================================
             document.getElementById('accountRedeemBtn').addEventListener('click', async () => {
                 const key = accountKeyInput.value.trim();
-                
                 if (!key) return alert("⚠️ 請輸入兌換序號！");
                 if (!currentUser) return alert("⚠️ 發生錯誤，請重新登入！");
 
@@ -465,9 +444,7 @@
                         const userDoc = await userDocRef.get();
                         let currentData = userDoc.exists ? userDoc.data() : {};
 
-                        if (currentData.isLifetime) {
-                            return alert("⚠️ 您已經是永久 VIP 會員，不需再兌換任何序號囉！");
-                        }
+                        if (currentData.isLifetime) return alert("⚠️ 您已經是永久 VIP，不需再兌換！");
 
                         let newExpireAt = null;
                         let isLife = false;
@@ -478,7 +455,6 @@
                         } else {
                             const addDays = parseInt(durationType) || 30;
                             const addMs = addDays * 24 * 60 * 60 * 1000;
-                            
                             if (currentData.expireAt && currentData.expireAt.toDate() > now) {
                                 newExpireAt = new Date(currentData.expireAt.toDate().getTime() + addMs);
                             } else {
@@ -494,44 +470,100 @@
                         }, { merge: true });
 
                         await keyRef.update({ 
-                            isUsed: true,
-                            usedByEmail: currentUser.email,
-                            usedByUid: currentUser.uid,
-                            usedAt: new Date()
+                            isUsed: true, usedByEmail: currentUser.email, usedByUid: currentUser.uid, usedAt: new Date()
                         });
                         
-                        alert("🎉 兌換成功！方案已為您更新展延。");
+                        alert("🎉 兌換成功！方案已更新。");
                         accountKeyInput.value = '';
                         await checkVipStatus(currentUser.uid); 
                     } else {
-                        alert("❌ 兌換失敗：無效的序號或該序號已被使用！");
+                        alert("❌ 兌換失敗：無效的序號或已被使用！");
                     }
-                } catch(e) {
-                    console.error(e);
-                    alert("❌ 系統錯誤，請確認網路連線或檢查資料庫設定！");
-                }
+                } catch(e) { console.error(e); alert("❌ 系統錯誤，請檢查網路連線！"); }
             });
 
             // ==========================================
-            // 📄 4. 預覽與匯出邏輯 (修正數學公式抓取)
+            // 🤖 4. AI 手機破壞公式智慧修復引擎
+            // ==========================================
+            function autoFixGeminiMath(text) {
+                let protectedText = text;
+                const protections = [];
+                
+                // 保護現有的正確格式
+                const protect = (regex) => {
+                    protectedText = protectedText.replace(regex, (m) => {
+                        protections.push(m);
+                        return `###PROT_${protections.length - 1}###`;
+                    });
+                };
+                protect(/```[\s\S]*?```/g); // 程式碼區塊
+                protect(/`[^`\n]+`/g);      // 行內程式碼
+                protect(/\$\$([\s\S]+?)\$\$/g);
+                protect(/\\\[([\s\S]+?)\\\]/g);
+                protect(/\\\(([\s\S]+?)\\\)/g);
+                protect(/\$([^$\n]+?)\$/g);
+
+                let modified = false;
+                // 尋找連續的 ASCII 字符，判斷內部是否包含遺失 $ 的 LaTeX 語法
+                const nakedMathRegex = /([!-~]+)/g;
+                
+                protectedText = protectedText.replace(nakedMathRegex, (match) => {
+                    if (match.startsWith('###PROT_') || match.startsWith('http') || match.startsWith('www')) return match;
+
+                    // 特徵判斷：包含 \字母, 或 _{,或 ^{ 等數學特徵
+                    const hasMath = /\\[a-zA-Z]{2,}|_{|\^{|\^[0-9a-zA-Z]|[a-zA-Z]_[0-9a-zA-Z]/.test(match);
+                    // 排除純 markdown 星號/底線
+                    const isJustMarkdown = /^[\*_]+[a-zA-Z0-9]+[\*_]+$/.test(match);
+
+                    if (hasMath && !isJustMarkdown) {
+                        modified = true;
+                        return `$${match}$`; // 自動幫它穿上 $ 外衣
+                    }
+                    return match;
+                });
+
+                // 還原保護區塊
+                protections.forEach((prot, i) => {
+                    protectedText = protectedText.replace(`###PROT_${i}###`, prot);
+                });
+
+                return { fixedText: protectedText, modified };
+            }
+
+            // ==========================================
+            // 📄 5. 預覽與匯出邏輯
             // ==========================================
             function updatePreview() {
                 let text = inputText.value;
-                if (!window.marked || !window.renderMathInElement) return;
+                if (!window.marked || !window.renderMathInElement || text.trim() === '') {
+                    mathFixedNotice.classList.add('hidden');
+                    return;
+                }
+
+                // 執行 AI 自動修復引擎
+                if (autoFixToggle.checked) {
+                    const result = autoFixGeminiMath(text);
+                    text = result.fixedText;
+                    if (result.modified) {
+                        mathFixedNotice.classList.remove('hidden');
+                    } else {
+                        mathFixedNotice.classList.add('hidden');
+                    }
+                } else {
+                    mathFixedNotice.classList.add('hidden');
+                }
+
+                // 處理多種數學符號格式
                 const mathBlocks = {};
                 let mathIndex = 0;
-                
                 const replaceWithPlaceholder = (match) => {
                     const placeholder = `@@@MATH${mathIndex}@@@`;
-                    let safeMath = match;
-                    safeMath = safeMath.replace(/(^|[^a-zA-Z0-9\)\}\]\\])_/g, '$1{}_');
-                    safeMath = safeMath.replace(/(^|[^\\])%/g, '$1\\%');
+                    let safeMath = match.replace(/(^|[^a-zA-Z0-9\)\}\]\\])_/g, '$1{}_').replace(/(^|[^\\])%/g, '$1\\%');
                     mathBlocks[placeholder] = safeMath;
                     mathIndex++;
                     return placeholder;
                 };
 
-                // 【重要修正】將正則表達式的符號完全修正，確保能正確抓取 $$ 與 $
                 text = text.replace(/\$\$([\s\S]+?)\$\$/g, replaceWithPlaceholder);
                 text = text.replace(/\\\[([\s\S]+?)\\\]/g, replaceWithPlaceholder);
                 text = text.replace(/\\\(([\s\S]+?)\\\)/g, replaceWithPlaceholder);
@@ -556,7 +588,9 @@
             }
 
             inputText.addEventListener('input', updatePreview);
+            autoFixToggle.addEventListener('change', updatePreview);
             setTimeout(updatePreview, 500);
+            
             clearBtn.addEventListener('click', () => {
                 inputText.value = '';
                 updatePreview();
@@ -587,8 +621,8 @@
                 const originalTitle = document.title;
                 document.title = filename;
                 setTimeout(() => {
-                    try { window.print(); } catch (e) { alert("瀏覽器不支援列印功能。"); }
-                    setTimeout(() => { document.title = originalTitle; }, 2000);
+                    try { window.print(); } catch (e) { alert("瀏覽器不支援列印。"); }
+                    setTimeout(() => document.title = originalTitle, 2000);
                 }, 300);
             });
 
