@@ -82,15 +82,35 @@
             padding-bottom: 5px; /* 避免捲軸擋住公式底部 */
         }
         
-        /* 列印防護與列印時的公式換行修復 */
+        /* ========================================== */
+        /* 🖨️ 列印防護與手機黑邊修復 CSS */
+        /* ========================================== */
         @media print {
-            /* 終極防禦：如果不是透過系統按鈕匯出，強制全白！ */
+            /* 1. 設定紙張邊距，讓手機瀏覽器有標準依據 */
+            @page {
+                margin: 1.5cm;
+            }
+
+            /* 2. 終極防禦：如果不是透過系統按鈕匯出，強制全白！ */
             body:not(.allow-print) { display: none !important; }
             
             header, #inputPanel, #vdrToolbar { display: none !important; }
-            body, main, #vdrPanel, #vdrReaderArea, #vdrPage {
-                background: white !important; display: block !important; height: auto !important; margin: 0 !important; padding: 0 !important; border: none !important; box-shadow: none !important; overflow: visible !important; min-height: 0 !important;
+            
+            /* 3. 徹底強制漂白 HTML 與所有底層元件 (解決手機深色模式黑邊) */
+            html, body, main, #vdrPanel, #vdrReaderArea, #vdrPage {
+                background-color: white !important; 
+                background: white !important; 
+                display: block !important; 
+                height: auto !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                border: none !important; 
+                box-shadow: none !important; 
+                overflow: visible !important; 
+                min-height: 0 !important;
+                width: 100% !important;
             }
+            
             #watermarkLayer { display: none !important; }
             * { color: black !important; }
             .katex { color: black !important; }
@@ -115,7 +135,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">v2.5.0</span>
+                <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">v2.5.1</span>
             </div>
         </div>
         
@@ -172,10 +192,10 @@
             </div>
         </div>
 
-        <!-- 右側：專業 VDR 預覽區 (已移除側邊欄) -->
+        <!-- 右側：專業 VDR 預覽區 -->
         <div id="vdrPanel" class="flex flex-col rounded-xl border border-gray-200 dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[50vh] lg:min-h-0 bg-white dark:bg-darkPanel">
             
-            <!-- 防拷貝浮水印提示 (僅免費用戶可見) -->
+            <!-- 防拷貝浮水印提示 -->
             <div id="watermark" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none select-none text-4xl font-black rotate-[-30deg] z-0">
                 🔒 預覽區防護鎖定
             </div>
@@ -266,7 +286,7 @@
             <div class="mb-6 border-t border-gray-200 dark:border-gray-700 pt-5">
                 <p class="text-sm font-bold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
-                    開通 VIP / 試用 序號
+                    兌換 / 試用 序號
                 </p>
                 <div class="flex flex-col gap-2">
                     <input type="text" id="accountKeyInput" placeholder="請輸入您的兌換碼或試用碼" class="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-darkBg text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500 font-mono">
@@ -313,24 +333,19 @@
                 this.initBlockers();
             }
 
-            // 攔截開發者工具與右鍵與Ctrl+P
             initBlockers() {
-                // 阻擋快捷鍵 (F12, Ctrl+U, Ctrl+P)
                 document.addEventListener('keydown', (e) => {
-                    // F12, Ctrl+Shift+I, Ctrl+U
                     if (e.key === 'F12' || 
                        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || 
                        (e.ctrlKey && e.key === 'U')) {
                         e.preventDefault();
                     }
-                    // Ctrl+P / Cmd+P (防止未授權列印)
                     if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
                         e.preventDefault();
                         alert("⚠️ 系統禁止使用快捷鍵列印！\n\n請使用右上角的「PDF 匯出」按鈕進行系統授權的檔案匯出。");
                     }
                 });
 
-                // VDR 防拷貝：右鍵攔截
                 this.vdrPage.addEventListener('contextmenu', (e) => {
                     if (!this.isVip) {
                         e.preventDefault();
@@ -338,7 +353,6 @@
                     }
                 });
 
-                // VDR 防拷貝：複製與剪貼簿清洗
                 this.vdrPage.addEventListener('copy', (e) => {
                     if (!this.isVip) {
                         e.preventDefault();
@@ -349,7 +363,6 @@
                     }
                 });
 
-                // VDR 防拷貝：防拖曳
                 this.vdrPage.addEventListener('dragstart', (e) => {
                     if (!this.isVip) e.preventDefault();
                 });
@@ -547,7 +560,6 @@
                     this.mathFixedNotice.classList.remove('block');
                 }
 
-                // 星號排版修正引擎
                 text = text.replace(/\*\*([^\*]+?)\*\*/g, (match, content) => '**' + content.trim() + '**');
 
                 const mathBlocks = {};
@@ -597,7 +609,7 @@
                 this.auth = firebase.auth();
                 this.currentUser = null;
                 this.isUserVip = false;
-                this.freeQuota = 0; // 新增：免費額度狀態
+                this.freeQuota = 0; 
 
                 this.security = new SecurityManager();
                 this.editor = new EditorManager();
@@ -692,7 +704,6 @@
                     if (doc.exists) {
                         const data = doc.data();
                         
-                        // 處理免費額度 (如果沒有欄位，預設給 3 次)
                         this.freeQuota = data.freeQuota !== undefined ? data.freeQuota : 3;
                         if (data.freeQuota === undefined) await userRef.set({ freeQuota: 3 }, { merge: true });
 
@@ -703,12 +714,10 @@
                             this.isUserVip = true;
                         }
                     } else {
-                        // 新註冊用戶：賦予 3 次免費額度
                         this.freeQuota = 3;
                         await userRef.set({ freeQuota: 3, isLifetime: false }, { merge: true });
                     }
 
-                    // UI 顯示邏輯
                     const quotaBadge = document.getElementById('quotaBadge');
                     const quotaText = document.getElementById('quotaText');
 
@@ -723,7 +732,7 @@
                             displayExp = `將於 ${expDate.getFullYear()}/${String(expDate.getMonth()+1).padStart(2,'0')}/${String(expDate.getDate()).padStart(2,'0')} 到期 (剩餘 ${diffDays} 天)`;
                         }
                         document.getElementById('vipBadgeHeader').classList.remove('hidden');
-                        quotaBadge.classList.replace('flex', 'hidden'); // VIP不顯示額度
+                        quotaBadge.classList.replace('flex', 'hidden'); 
                     } else {
                         displayPlan = "🎁 免費方案";
                         displayExp = `剩餘免費匯出額度：${this.freeQuota} 次`;
@@ -789,7 +798,6 @@
                 } catch(e) { console.error(e); alert("❌ 系統錯誤！"); }
             }
 
-            // 處理額度扣款與匯出邏輯
             async handleExport(type) {
                 if (!this.currentUser) { 
                     document.getElementById('loginModal').classList.replace('hidden','flex'); 
@@ -804,13 +812,12 @@
                     return;
                 }
 
-                // 免費用戶判斷額度
                 if (this.freeQuota > 0) {
                     if (confirm(`將扣除 1 次免費匯出額度（剩餘 ${this.freeQuota} 次），確定要匯出嗎？`)) {
                         try {
                             const userRef = this.db.collection('vipUsers').doc(this.currentUser.uid);
                             await userRef.set({ freeQuota: firebase.firestore.FieldValue.increment(-1) }, { merge: true });
-                            await this.checkVipStatus(this.currentUser.uid); // 重新抓取並更新畫面
+                            await this.checkVipStatus(this.currentUser.uid); 
                             this.executeExport(type);
                         } catch (e) {
                             alert("❌ 扣除額度失敗，請檢查網路連線。");
@@ -827,7 +834,6 @@
                 if (type === 'pdf') {
                     const originalTitle = document.title;
                     document.title = filename;
-                    // 開放系統白名單列印 (繞過 CSS 的 body:not(.allow-print) 阻擋)
                     document.body.classList.add('allow-print');
                     setTimeout(() => { 
                         window.print(); 
@@ -853,7 +859,6 @@
             }
         }
 
-        // 啟動應用程式
         document.addEventListener('DOMContentLoaded', () => { new App(); });
     </script>
 </body>
