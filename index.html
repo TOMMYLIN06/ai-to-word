@@ -79,24 +79,18 @@
             overflow-x: auto;
             overflow-y: hidden;
             max-width: 100%;
-            padding-bottom: 5px; /* 避免捲軸擋住公式底部 */
+            padding-bottom: 5px; 
         }
         
         /* ========================================== */
-        /* 🖨️ 列印防護與手機黑邊修復 CSS */
+        /* 🖨️ 終極純淨漂白列印 CSS */
         /* ========================================== */
         @media print {
-            /* 1. 設定紙張邊距，讓手機瀏覽器有標準依據 */
-            @page {
-                margin: 1.5cm;
-            }
-
-            /* 2. 終極防禦：如果不是透過系統按鈕匯出，強制全白！ */
+            @page { margin: 1.5cm; }
             body:not(.allow-print) { display: none !important; }
+            header, #inputPanel, #vdrToolbar, #watermark, #watermarkLayer, #mobileWarning { display: none !important; }
             
-            header, #inputPanel, #vdrToolbar { display: none !important; }
-            
-            /* 3. 徹底強制漂白 HTML 與所有底層元件 (解決手機深色模式黑邊) */
+            /* 強制將所有外層容器變成純白無邊框，徹底殺死黑邊 */
             html, body, main, #vdrPanel, #vdrReaderArea, #vdrPage {
                 background-color: white !important; 
                 background: white !important; 
@@ -105,13 +99,14 @@
                 margin: 0 !important; 
                 padding: 0 !important; 
                 border: none !important; 
+                border-radius: 0 !important;
                 box-shadow: none !important; 
                 overflow: visible !important; 
                 min-height: 0 !important;
                 width: 100% !important;
+                max-width: 100% !important;
             }
             
-            #watermarkLayer { display: none !important; }
             * { color: black !important; }
             .katex { color: black !important; }
             
@@ -126,6 +121,15 @@
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-darkBg dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200 relative">
 
+    <!-- === 手機版專屬建議提示 === -->
+    <div id="mobileWarning" class="md:hidden bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-800 dark:text-amber-300 flex justify-between items-start">
+        <div>
+            <strong class="block text-sm mb-0.5">💻 建議使用電腦版操作</strong>
+            手機瀏覽器 (如 Safari) 匯出 PDF 偶有延遲或空白頁。為獲取最佳的數學排版與列印體驗，強烈建議使用電腦版開啟本工具！
+        </div>
+        <button onclick="this.parentElement.style.display='none'" class="text-amber-500 hover:text-amber-700 dark:hover:text-amber-200 ml-3 text-lg font-bold">&times;</button>
+    </div>
+
     <!-- === 頂部導覽列 === -->
     <header class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-darkHeader transition-colors duration-200">
         <div class="flex items-center gap-3">
@@ -135,7 +139,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">v2.5.1</span>
+                <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">v2.6.0</span>
             </div>
         </div>
         
@@ -211,8 +215,8 @@
                         <span class="px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap border-r border-gray-200 dark:border-gray-700">檔名</span>
                         <input type="text" id="filenameInput" value="" class="w-40 sm:w-32 lg:w-40 px-2 py-1.5 text-sm bg-transparent text-gray-800 dark:text-gray-200 outline-none" placeholder="預設: Tommy的AI轉Word">
                     </div>
-                    <button id="exportPdfBtn" class="flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">PDF</button>
-                    <button id="exportBtn" class="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">Word</button>
+                    <button id="exportPdfBtn" class="flex items-center gap-1 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">PDF 匯出</button>
+                    <button id="exportBtn" class="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm shrink-0">Word 匯出</button>
                 </div>
             </div>
             
@@ -316,7 +320,7 @@
         };
         firebase.initializeApp(firebaseConfig);
 
-        // 🛡️ 1. 企業級安全防護模組 (Security Manager)
+        // 🛡️ 1. 企業級安全防護模組
         class SecurityManager {
             constructor() {
                 this.isVip = false;
@@ -464,7 +468,7 @@
             }
         }
 
-        // 📝 2. AI 編輯器與解析模組 (Editor Manager)
+        // 📝 2. AI 編輯器與解析模組
         class EditorManager {
             constructor() {
                 this.inputText = document.getElementById('inputText');
@@ -545,6 +549,8 @@
                     return;
                 }
 
+                text = text.replace(/^(\s*[-+*]\s+)\*(?!\*)\s*/gm, '$1');
+
                 if (this.autoFixToggle.checked) {
                     const result = this.autoFixGeminiMath(text);
                     text = result.fixedText;
@@ -602,7 +608,7 @@
             }
         }
 
-        // 🌐 3. 主應用核心架構 (App Core)
+        // 🌐 3. 主應用核心架構
         class App {
             constructor() {
                 this.db = firebase.firestore();
@@ -680,6 +686,13 @@
                     const e = document.getElementById('emailInput').value.trim(), p = document.getElementById('passwordInput').value;
                     if(!e || !p) return alert("請輸入信箱與密碼");
                     this.auth.createUserWithEmailAndPassword(e, p).catch(err => alert("註冊失敗：" + err.message));
+                });
+                document.getElementById('forgotPasswordBtn').addEventListener('click', () => {
+                    const email = document.getElementById('emailInput').value.trim();
+                    if(!email) return alert("請先輸入信箱，再點擊忘記密碼。");
+                    this.auth.sendPasswordResetEmail(email)
+                        .then(() => alert("✅ 重設信件已寄出！"))
+                        .catch(error => alert("❌ 發生錯誤：" + error.message));
                 });
                 document.getElementById('googleLoginBtn').addEventListener('click', () => {
                     if (/(FBAN|FBAV|Line|Instagram|MicroMessenger)/i.test(navigator.userAgent)) {
@@ -831,17 +844,40 @@
 
             executeExport(type) {
                 const filename = document.getElementById('filenameInput').value.trim() || 'Tommy的AI轉Word';
+                
                 if (type === 'pdf') {
                     const originalTitle = document.title;
                     document.title = filename;
+                    
+                    // PDF 匯出防護緩衝：加入按鈕狀態改變並延長延遲
+                    const btn = document.getElementById('exportPdfBtn');
+                    const oldText = btn.innerText;
+                    btn.innerText = '處理中...';
+                    btn.disabled = true;
+
+                    // 終極手機漂白術：強制關閉深色模式
+                    const htmlEl = document.documentElement;
+                    const wasDark = htmlEl.classList.contains('dark');
+                    if (wasDark) htmlEl.classList.remove('dark');
                     document.body.classList.add('allow-print');
+                    
+                    // 將等待時間延長到 0.8 秒，讓 Safari 確保徹底重繪完成
                     setTimeout(() => { 
-                        window.print(); 
+                        try { 
+                            window.print(); 
+                        } catch (e) { 
+                            alert("瀏覽器不支援列印。"); 
+                        }
+                        
+                        // 恢復原狀
                         setTimeout(() => {
                             document.title = originalTitle;
                             document.body.classList.remove('allow-print');
-                        }, 2000); 
-                    }, 300);
+                            if(wasDark) htmlEl.classList.add('dark');
+                            btn.innerText = oldText;
+                            btn.disabled = false;
+                        }, 1000); 
+                    }, 800); 
                 } else if (type === 'word') {
                     const clone = document.getElementById('previewArea').cloneNode(true);
                     clone.querySelectorAll('.katex-html').forEach(n => n.remove());
