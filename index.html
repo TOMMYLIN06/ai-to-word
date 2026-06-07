@@ -81,15 +81,21 @@
             padding-bottom: 5px; 
         }
         
-        /* 列印防護與漂白 CSS */
+        /* ========================================== */
+        /* 🖨️ 極速純淨漂白列印 CSS (解決 Safari 卡死與黑邊) */
+        /* ========================================== */
         @media print {
-            @page { margin: 1.5cm; }
-            body:not(.allow-print) { display: none !important; }
-            header, #inputPanel, #vdrToolbar, #watermark, #watermarkLayer, #mobileWarning { display: none !important; }
+            @page { margin: 1cm; }
             
+            /* 隱藏所有工具列與浮水印 */
+            header, #inputPanel, #vdrToolbar, #watermark, #watermarkLayer, #mobileWarning { 
+                display: none !important; 
+            }
+            
+            /* 終極漂白：完全覆蓋暗黑模式，純白底黑字，拒絕黑邊 */
             html, body, main, #vdrPanel, #vdrReaderArea, #vdrPage {
-                background-color: white !important; 
-                background: white !important; 
+                background-color: #ffffff !important; 
+                background: #ffffff !important; 
                 display: block !important; 
                 height: auto !important; 
                 margin: 0 !important; 
@@ -103,9 +109,13 @@
                 max-width: 100% !important;
             }
             
-            * { color: black !important; }
-            .katex { color: black !important; }
+            /* 強制所有文字變成黑色，包含深色模式下的文字 */
+            *, .prose, .dark .prose, .dark .prose h1, .dark .prose h2, .dark .prose h3 { 
+                color: #000000 !important; 
+            }
+            .katex { color: #000000 !important; }
             
+            /* 列印時強制允許公式換行，避免被切掉 */
             .katex-display, .katex {
                 white-space: normal !important;
                 word-wrap: break-word !important;
@@ -132,7 +142,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">v2.6.2</span>
+                <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">v2.6.3</span>
             </div>
         </div>
         
@@ -721,20 +731,17 @@
                 } catch(e) { console.error("讀取資料失敗", e); }
             }
 
-            // 更新畫面的額度顯示機制
             updateQuotaUI() {
                 let displayPlan = "基礎方案", displayExp = "";
                 const quotaBadge = document.getElementById('quotaBadge');
                 const quotaText = document.getElementById('quotaText');
 
                 if (this.isUserVip) {
-                    // VIP 用戶
                     displayPlan = "👑 VIP 會員"; 
-                    displayExp = "✓ 永久有效，無限次數匯出"; // 為了不再次呼叫 DB，這裡做簡化顯示，或你可以保存 expireAt
+                    displayExp = "✓ 永久有效，無限次數匯出"; 
                     document.getElementById('vipBadgeHeader').classList.remove('hidden');
                     quotaBadge.classList.replace('flex', 'hidden'); 
                 } else {
-                    // 免費用戶
                     displayPlan = "🎁 免費方案";
                     displayExp = `剩餘免費匯出額度：${this.freeQuota} 次`;
                     document.getElementById('vipBadgeHeader').classList.add('hidden');
@@ -796,9 +803,6 @@
                 } catch(e) { console.error(e); alert("❌ 系統錯誤！"); }
             }
 
-            // ==========================================
-            // 防白嫖：處理額度扣款 (同步執行列印，背景扣款)
-            // ==========================================
             handleExport(type) {
                 if (!this.currentUser) { 
                     document.getElementById('loginModal').classList.replace('hidden','flex'); 
@@ -813,7 +817,6 @@
                     return;
                 }
 
-                // 【防護 1】斷網偵測：防止飛航模式白嫖
                 if (!navigator.onLine) {
                     return alert("⚠️ 網路連線中斷！為確保額度同步，請檢查網路後再試。");
                 }
@@ -821,14 +824,12 @@
                 if (this.freeQuota > 0) {
                     if (confirm(`將扣除 1 次免費匯出額度（剩餘 ${this.freeQuota} 次），確定要匯出嗎？`)) {
                         
-                        // 【防護 2】先在本地端瞬間扣款，更新 UI，防堵連按白嫖
                         this.freeQuota -= 1;
                         this.updateQuotaUI();
 
-                        // 1. 同步執行列印 (滿足 Safari 安全規範，不能用 await)
+                        // 呼叫純淨無干擾的匯出函式
                         this.executeExport(type);
 
-                        // 2. 丟到背景寫入資料庫 (Firebase 支援離線暫存，下次上線也會補扣)
                         const userRef = this.db.collection('vipUsers').doc(this.currentUser.uid);
                         userRef.set({ freeQuota: firebase.firestore.FieldValue.increment(-1) }, { merge: true })
                             .catch(e => console.error("扣款連線失敗", e));
@@ -840,7 +841,7 @@
             }
 
             // ==========================================
-            // 執行匯出 (強制同步渲染)
+            // 執行匯出 (最乾淨的呼叫方式，不干擾 Safari 渲染)
             // ==========================================
             executeExport(type) {
                 const filename = document.getElementById('filenameInput').value.trim() || 'Tommy的AI轉Word';
@@ -849,29 +850,15 @@
                     const originalTitle = document.title;
                     document.title = filename;
                     
-                    // 同步脫除深色模式與添加列印權限
-                    const htmlEl = document.documentElement;
-                    const wasDark = htmlEl.classList.contains('dark');
-                    if (wasDark) htmlEl.classList.remove('dark');
-                    document.body.classList.add('allow-print');
-                    
-                    // 強制重繪 (Force Reflow)：確保 Safari 立刻將網頁洗白
-                    void document.body.offsetHeight;
-                    
-                    // 立刻呼叫列印
+                    // Safari 安全規定：window.print 必須零延遲呼叫，且不能伴隨 DOM 劇烈變化
+                    // 列印漂白處理現在已完全交由 CSS @media print 負責，不再以 JS 切換 Class
                     try { 
                         window.print(); 
                     } catch (e) { 
-                        alert("您的瀏覽器不支援列印功能，請改用其他瀏覽器。"); 
+                        alert("瀏覽器不支援列印。"); 
                     }
                     
-                    // 等待列印視窗關閉後，恢復畫面
-                    setTimeout(() => {
-                        document.title = originalTitle;
-                        document.body.classList.remove('allow-print');
-                        if (wasDark) htmlEl.classList.add('dark');
-                    }, 1000); 
-
+                    document.title = originalTitle;
                 } else if (type === 'word') {
                     const clone = document.getElementById('previewArea').cloneNode(true);
                     clone.querySelectorAll('.katex-html').forEach(n => n.remove());
