@@ -74,7 +74,6 @@
             user-select: none;
         }
 
-        /* 解決超長數學公式被切掉的問題 */
         .katex-display {
             overflow-x: auto;
             overflow-y: hidden;
@@ -82,9 +81,7 @@
             padding-bottom: 5px; 
         }
         
-        /* ========================================== */
-        /* 🖨️ 列印防護與漂白 CSS */
-        /* ========================================== */
+        /* 列印防護與漂白 CSS */
         @media print {
             @page { margin: 1.5cm; }
             body:not(.allow-print) { display: none !important; }
@@ -119,7 +116,6 @@
 </head>
 <body class="bg-gray-50 text-gray-900 dark:bg-darkBg dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200 relative">
 
-    <!-- === 手機版專屬建議提示 === -->
     <div id="mobileWarning" class="md:hidden bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 p-3 text-xs text-amber-800 dark:text-amber-300 flex justify-between items-start">
         <div>
             <strong class="block text-sm mb-0.5">💻 建議使用電腦版操作</strong>
@@ -128,7 +124,6 @@
         <button onclick="this.parentElement.style.display='none'" class="text-amber-500 hover:text-amber-700 dark:hover:text-amber-200 ml-3 text-lg font-bold">&times;</button>
     </div>
 
-    <!-- === 頂部導覽列 === -->
     <header class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-darkHeader transition-colors duration-200">
         <div class="flex items-center gap-3">
             <div class="bg-indigo-600 p-2 rounded-lg text-white">
@@ -137,17 +132,15 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">v2.6.1</span>
+                <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">v2.6.2</span>
             </div>
         </div>
         
         <div class="flex items-center gap-3 shrink-0">
-            <!-- 額度顯示區 -->
             <div id="quotaBadge" class="hidden items-center gap-1.5 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-md">
                 <span class="text-xs font-medium text-indigo-700 dark:text-indigo-300" id="quotaText">讀取中...</span>
             </div>
 
-            <!-- 大頭貼區域 -->
             <div id="userArea" class="hidden items-center gap-2.5 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 p-1.5 pr-3 rounded-full transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
                 <img id="userAvatar" src="" alt="avatar" class="w-8 h-8 rounded-full bg-white border border-gray-300 dark:border-gray-600 object-cover shadow-sm">
                 <div class="flex flex-col">
@@ -167,10 +160,8 @@
         </div>
     </header>
 
-    <!-- === 主要編輯區 (左右分割) === -->
     <main class="flex-1 p-4 lg:p-6 flex flex-col lg:grid lg:grid-cols-2 gap-4 lg:gap-6 h-auto lg:h-[calc(100vh-73px)]">
         
-        <!-- 左側：輸入區 -->
         <div id="inputPanel" class="flex flex-col rounded-xl border bg-white border-gray-200 dark:bg-darkPanel dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[40vh] lg:min-h-0 relative">
             <div class="flex items-center justify-between px-4 py-3 border-b bg-gray-50/50 border-gray-100 dark:bg-[#2a2a3d] dark:border-darkBorder">
                 <div class="flex items-center gap-2">
@@ -194,10 +185,8 @@
             </div>
         </div>
 
-        <!-- 右側：專業 VDR 預覽區 -->
         <div id="vdrPanel" class="flex flex-col rounded-xl border border-gray-200 dark:border-darkBorder overflow-hidden shadow-sm transition-colors duration-200 min-h-[50vh] lg:min-h-0 bg-white dark:bg-darkPanel">
             
-            <!-- 防拷貝浮水印提示 -->
             <div id="watermark" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none select-none text-4xl font-black rotate-[-30deg] z-0">
                 🔒 預覽區防護鎖定
             </div>
@@ -710,11 +699,9 @@
                     const userRef = this.db.collection('vipUsers').doc(uid);
                     const doc = await userRef.get();
                     this.isUserVip = false;
-                    let displayPlan = "基礎方案", displayExp = "";
                     
                     if (doc.exists) {
                         const data = doc.data();
-                        
                         this.freeQuota = data.freeQuota !== undefined ? data.freeQuota : 3;
                         if (data.freeQuota === undefined) await userRef.set({ freeQuota: 3 }, { merge: true });
 
@@ -729,39 +716,39 @@
                         await userRef.set({ freeQuota: 3, isLifetime: false }, { merge: true });
                     }
 
-                    const quotaBadge = document.getElementById('quotaBadge');
-                    const quotaText = document.getElementById('quotaText');
-
-                    if (this.isUserVip) {
-                        const data = (await userRef.get()).data();
-                        displayPlan = "👑 VIP 會員"; 
-                        if (data.isLifetime) {
-                            displayExp = "✓ 永久有效，無限次數匯出";
-                        } else {
-                            const expDate = data.expireAt.toDate();
-                            const diffDays = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
-                            displayExp = `將於 ${expDate.getFullYear()}/${String(expDate.getMonth()+1).padStart(2,'0')}/${String(expDate.getDate()).padStart(2,'0')} 到期 (剩餘 ${diffDays} 天)`;
-                        }
-                        document.getElementById('vipBadgeHeader').classList.remove('hidden');
-                        quotaBadge.classList.replace('flex', 'hidden'); 
-                    } else {
-                        displayPlan = "🎁 免費方案";
-                        displayExp = `剩餘免費匯出額度：${this.freeQuota} 次`;
-                        document.getElementById('vipBadgeHeader').classList.add('hidden');
-                        
-                        quotaBadge.classList.replace('hidden', 'flex');
-                        quotaText.textContent = `免費額度: ${this.freeQuota} 次`;
-                        if(this.freeQuota === 0) {
-                            quotaText.classList.replace('text-indigo-700', 'text-red-600');
-                            quotaText.classList.replace('dark:text-indigo-300', 'dark:text-red-400');
-                        }
-                    }
-
-                    document.getElementById('accountPlanDisplay').textContent = displayPlan;
-                    document.getElementById('accountExpiryDisplay').textContent = displayExp;
-
+                    this.updateQuotaUI();
                     this.security.updateStatus(this.isUserVip, this.currentUser.email);
                 } catch(e) { console.error("讀取資料失敗", e); }
+            }
+
+            // 更新畫面的額度顯示機制
+            updateQuotaUI() {
+                let displayPlan = "基礎方案", displayExp = "";
+                const quotaBadge = document.getElementById('quotaBadge');
+                const quotaText = document.getElementById('quotaText');
+
+                if (this.isUserVip) {
+                    // VIP 用戶
+                    displayPlan = "👑 VIP 會員"; 
+                    displayExp = "✓ 永久有效，無限次數匯出"; // 為了不再次呼叫 DB，這裡做簡化顯示，或你可以保存 expireAt
+                    document.getElementById('vipBadgeHeader').classList.remove('hidden');
+                    quotaBadge.classList.replace('flex', 'hidden'); 
+                } else {
+                    // 免費用戶
+                    displayPlan = "🎁 免費方案";
+                    displayExp = `剩餘免費匯出額度：${this.freeQuota} 次`;
+                    document.getElementById('vipBadgeHeader').classList.add('hidden');
+                    
+                    quotaBadge.classList.replace('hidden', 'flex');
+                    quotaText.textContent = `免費額度: ${this.freeQuota} 次`;
+                    if(this.freeQuota <= 0) {
+                        quotaText.classList.replace('text-indigo-700', 'text-red-600');
+                        quotaText.classList.replace('dark:text-indigo-300', 'dark:text-red-400');
+                    }
+                }
+
+                document.getElementById('accountPlanDisplay').textContent = displayPlan;
+                document.getElementById('accountExpiryDisplay').textContent = displayExp;
             }
 
             async redeemKey() {
@@ -810,7 +797,7 @@
             }
 
             // ==========================================
-            // 處理額度扣款 (同步執行列印，非同步扣款)
+            // 防白嫖：處理額度扣款 (同步執行列印，背景扣款)
             // ==========================================
             handleExport(type) {
                 if (!this.currentUser) { 
@@ -826,17 +813,25 @@
                     return;
                 }
 
+                // 【防護 1】斷網偵測：防止飛航模式白嫖
+                if (!navigator.onLine) {
+                    return alert("⚠️ 網路連線中斷！為確保額度同步，請檢查網路後再試。");
+                }
+
                 if (this.freeQuota > 0) {
                     if (confirm(`將扣除 1 次免費匯出額度（剩餘 ${this.freeQuota} 次），確定要匯出嗎？`)) {
                         
-                        // 1. 先執行列印 (絕對不能被 await 阻塞，否則 iOS Safari 會擋彈窗)
+                        // 【防護 2】先在本地端瞬間扣款，更新 UI，防堵連按白嫖
+                        this.freeQuota -= 1;
+                        this.updateQuotaUI();
+
+                        // 1. 同步執行列印 (滿足 Safari 安全規範，不能用 await)
                         this.executeExport(type);
 
-                        // 2. 在背景默默執行扣款連線
+                        // 2. 丟到背景寫入資料庫 (Firebase 支援離線暫存，下次上線也會補扣)
                         const userRef = this.db.collection('vipUsers').doc(this.currentUser.uid);
                         userRef.set({ freeQuota: firebase.firestore.FieldValue.increment(-1) }, { merge: true })
-                            .then(() => this.checkVipStatus(this.currentUser.uid))
-                            .catch(e => console.error("扣款失敗", e));
+                            .catch(e => console.error("扣款連線失敗", e));
                     }
                 } else {
                     alert("⚠️ 您的免費匯出額度已用盡！\n\n請輸入 VIP 序號或試用金鑰以解鎖「無限次數匯出」。");
@@ -845,7 +840,7 @@
             }
 
             // ==========================================
-            // 執行匯出 (強制同步渲染，拔除 setTimeout)
+            // 執行匯出 (強制同步渲染)
             // ==========================================
             executeExport(type) {
                 const filename = document.getElementById('filenameInput').value.trim() || 'Tommy的AI轉Word';
@@ -854,23 +849,23 @@
                     const originalTitle = document.title;
                     document.title = filename;
                     
-                    // 1. 同步脫除深色模式與添加列印權限
+                    // 同步脫除深色模式與添加列印權限
                     const htmlEl = document.documentElement;
                     const wasDark = htmlEl.classList.contains('dark');
                     if (wasDark) htmlEl.classList.remove('dark');
                     document.body.classList.add('allow-print');
                     
-                    // 2. 強制重繪 (Force Reflow)：確保 Safari 立刻將網頁洗白，不會印出黑底
+                    // 強制重繪 (Force Reflow)：確保 Safari 立刻將網頁洗白
                     void document.body.offsetHeight;
                     
-                    // 3. 立刻呼叫列印 (絕不可放在 setTimeout 內)
+                    // 立刻呼叫列印
                     try { 
                         window.print(); 
                     } catch (e) { 
                         alert("您的瀏覽器不支援列印功能，請改用其他瀏覽器。"); 
                     }
                     
-                    // 4. 等待列印視窗關閉後，恢復畫面 (這層 setTimeout 是安全的)
+                    // 等待列印視窗關閉後，恢復畫面
                     setTimeout(() => {
                         document.title = originalTitle;
                         document.body.classList.remove('allow-print');
