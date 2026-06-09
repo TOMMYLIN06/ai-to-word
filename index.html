@@ -81,18 +81,13 @@
             padding-bottom: 5px; 
         }
         
-        /* ========================================== */
-        /* 🖨️ 極速純淨漂白列印 CSS (解決 Safari 卡死與黑邊) */
-        /* ========================================== */
+        /* 列印防護與漂白 CSS */
         @media print {
             @page { margin: 1cm; }
-            
-            /* 隱藏所有工具列與浮水印 */
             header, #inputPanel, #vdrToolbar, #watermark, #watermarkLayer, #mobileWarning { 
                 display: none !important; 
             }
             
-            /* 終極漂白：完全覆蓋暗黑模式，純白底黑字，拒絕黑邊 */
             html, body, main, #vdrPanel, #vdrReaderArea, #vdrPage {
                 background-color: #ffffff !important; 
                 background: #ffffff !important; 
@@ -109,13 +104,11 @@
                 max-width: 100% !important;
             }
             
-            /* 強制所有文字變成黑色，包含深色模式下的文字 */
             *, .prose, .dark .prose, .dark .prose h1, .dark .prose h2, .dark .prose h3 { 
                 color: #000000 !important; 
             }
             .katex { color: #000000 !important; }
             
-            /* 列印時強制允許公式換行，避免被切掉 */
             .katex-display, .katex {
                 white-space: normal !important;
                 word-wrap: break-word !important;
@@ -142,7 +135,7 @@
             <div class="flex items-center gap-2">
                 <h1 class="text-xl font-bold tracking-wide hidden sm:block">Tommy的AI轉Word工具</h1>
                 <h1 class="text-xl font-bold tracking-wide sm:hidden">AI轉Word</h1>
-                <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">v2.6.3</span>
+                <span class="text-xs bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 font-mono font-bold px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">v2.6.4</span>
             </div>
         </div>
         
@@ -226,7 +219,6 @@
         </div>
     </main>
 
-    <!-- === 模態視窗：登入 / 註冊 === -->
     <div id="loginModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[100] transition-opacity backdrop-blur-sm">
         <div class="bg-white dark:bg-darkPanel p-8 rounded-2xl shadow-2xl w-[90%] max-w-sm relative border border-gray-200 dark:border-gray-700">
             <button id="closeLoginModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -262,7 +254,6 @@
         </div>
     </div>
 
-    <!-- === 模態視窗：會員中心 === -->
     <div id="accountModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-[100] transition-opacity backdrop-blur-sm">
         <div class="bg-white dark:bg-darkPanel p-6 md:p-8 rounded-2xl shadow-2xl w-[90%] max-w-md relative border border-gray-200 dark:border-gray-700">
             <button id="closeAccountModalBtn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
@@ -303,9 +294,6 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 🚀 全新 ES6 企業級物件導向架構 (OOP) -->
-    <!-- ========================================== -->
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyDJgROetgdjW3dO5g0nrIF958ZW_vXxSow",
@@ -578,7 +566,7 @@
                     return placeholder;
                 };
 
-                text = text.replace(/\$\$([\s\S]+?)\$\$/g, replaceWithPlaceholder);
+                text = text.replace(/\ $\$([\s\S]+?)\$\$/g, replaceWithPlaceholder);
                 text = text.replace(/\\\[([\s\S]+?)\\\]/g, replaceWithPlaceholder);
                 text = text.replace(/\\\(([\s\S]+?)\\\)/g, replaceWithPlaceholder);
                 text = text.replace(/\$([^$\n]+?)\$/g, replaceWithPlaceholder);
@@ -709,16 +697,17 @@
                     const userRef = this.db.collection('vipUsers').doc(uid);
                     const doc = await userRef.get();
                     this.isUserVip = false;
+                    let userData = {};
                     
                     if (doc.exists) {
-                        const data = doc.data();
-                        this.freeQuota = data.freeQuota !== undefined ? data.freeQuota : 3;
-                        if (data.freeQuota === undefined) await userRef.set({ freeQuota: 3 }, { merge: true });
+                        userData = doc.data();
+                        this.freeQuota = userData.freeQuota !== undefined ? userData.freeQuota : 3;
+                        if (userData.freeQuota === undefined) await userRef.set({ freeQuota: 3 }, { merge: true });
 
                         const now = new Date();
-                        if (data.isLifetime) {
+                        if (userData.isLifetime) {
                             this.isUserVip = true;
-                        } else if (data.expireAt && data.expireAt.toDate() > now) {
+                        } else if (userData.expireAt && userData.expireAt.toDate() > now) {
                             this.isUserVip = true;
                         }
                     } else {
@@ -726,19 +715,29 @@
                         await userRef.set({ freeQuota: 3, isLifetime: false }, { merge: true });
                     }
 
-                    this.updateQuotaUI();
+                    // 將讀取到的資料傳給 UI 處理器，避免盲目覆蓋成永久
+                    this.updateQuotaUI(userData);
                     this.security.updateStatus(this.isUserVip, this.currentUser.email);
                 } catch(e) { console.error("讀取資料失敗", e); }
             }
 
-            updateQuotaUI() {
+            // 【終極導正】完美解析真實天數，不再偷懶強制盲目印永久！
+            updateQuotaUI(userData) {
                 let displayPlan = "基礎方案", displayExp = "";
                 const quotaBadge = document.getElementById('quotaBadge');
                 const quotaText = document.getElementById('quotaText');
 
                 if (this.isUserVip) {
                     displayPlan = "👑 VIP 會員"; 
-                    displayExp = "✓ 永久有效，無限次數匯出"; 
+                    if (userData && userData.isLifetime) {
+                        displayExp = "✓ 永久有效，無限次數匯出";
+                    } else if (userData && userData.expireAt) {
+                        const expDate = userData.expireAt.toDate();
+                        const diffDays = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
+                        displayExp = `將於 ${expDate.getFullYear()}/${String(expDate.getMonth()+1).padStart(2,'0')}/${String(expDate.getDate()).padStart(2,'0')} 到期 (剩餘 ${diffDays} 天)`;
+                    } else {
+                        displayExp = "✓ VIP 核心匯出權限已開通";
+                    }
                     document.getElementById('vipBadgeHeader').classList.remove('hidden');
                     quotaBadge.classList.replace('flex', 'hidden'); 
                 } else {
@@ -797,7 +796,7 @@
                     }
 
                     await userRef.set(updateData, { merge: true });
-                    alert("🎉 兌換成功！已為您開通無限匯出與解除防拷貝限制。");
+                    alert("🎉 兌換成功！已為您開通權限。");
                     document.getElementById('accountKeyInput').value = '';
                     await this.checkVipStatus(this.currentUser.uid);
                 } catch(e) { console.error(e); alert("❌ 系統錯誤！"); }
@@ -825,9 +824,8 @@
                     if (confirm(`將扣除 1 次免費匯出額度（剩餘 ${this.freeQuota} 次），確定要匯出嗎？`)) {
                         
                         this.freeQuota -= 1;
-                        this.updateQuotaUI();
+                        this.updateQuotaUI(null); // 暫時給空重繪介面
 
-                        // 呼叫純淨無干擾的匯出函式
                         this.executeExport(type);
 
                         const userRef = this.db.collection('vipUsers').doc(this.currentUser.uid);
@@ -840,24 +838,17 @@
                 }
             }
 
-            // ==========================================
-            // 執行匯出 (最乾淨的呼叫方式，不干擾 Safari 渲染)
-            // ==========================================
             executeExport(type) {
                 const filename = document.getElementById('filenameInput').value.trim() || 'Tommy的AI轉Word';
                 
                 if (type === 'pdf') {
                     const originalTitle = document.title;
                     document.title = filename;
-                    
-                    // Safari 安全規定：window.print 必須零延遲呼叫，且不能伴隨 DOM 劇烈變化
-                    // 列印漂白處理現在已完全交由 CSS @media print 負責，不再以 JS 切換 Class
                     try { 
                         window.print(); 
                     } catch (e) { 
                         alert("瀏覽器不支援列印。"); 
                     }
-                    
                     document.title = originalTitle;
                 } else if (type === 'word') {
                     const clone = document.getElementById('previewArea').cloneNode(true);
